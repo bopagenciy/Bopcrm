@@ -982,9 +982,9 @@ class CanonicalBopClientsCompatibilityTestCase(TestCase):
         envelope = self.get_canonical_fixture()
         res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(res.data["status"], "received")
+        self.assertEqual(res.data["status"], "processed")
         self.assertEqual(res.data["event_id"], envelope["event_id"])
-        self.assertFalse(res.data["processed"])
+        self.assertTrue(res.data["processed"])
 
         set_rls_context(self.org.id)
         log = BopEventLog.objects.get(event_id=envelope["event_id"])
@@ -1167,7 +1167,7 @@ class CanonicalBopClientsCompatibilityTestCase(TestCase):
         self.assertEqual(after_count, before_count + 1)
 
     def test_p_zero_crm_business_entities_created(self):
-        """P. zero CRM business entities created (Lead, Account, Contact, Opportunity counts unchanged)."""
+        """P. zero Contact or Opportunity created during prospect ingestion (Lead and Account are created)."""
         set_rls_context(self.org.id)
         before_leads = Lead.objects.count()
         before_accounts = Account.objects.count()
@@ -1180,8 +1180,10 @@ class CanonicalBopClientsCompatibilityTestCase(TestCase):
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
         set_rls_context(self.org.id)
-        self.assertEqual(Lead.objects.count(), before_leads)
-        self.assertEqual(Account.objects.count(), before_accounts)
+        # Lead and Account are created in CRM-I1C.3
+        self.assertEqual(Lead.objects.count(), before_leads + 1)
+        self.assertEqual(Account.objects.count(), before_accounts + 1)
+        # Contact and Opportunity are never created during prospect ingestion
         self.assertEqual(Contact.objects.count(), before_contacts)
         self.assertEqual(Opportunity.objects.count(), before_opps)
         clear_rls_context()

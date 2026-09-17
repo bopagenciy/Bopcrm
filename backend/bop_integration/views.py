@@ -15,6 +15,7 @@ from bop_integration.constants import normalize_source_app
 from bop_integration.models import BopEventLog
 from bop_integration.permissions import HasBopEventGatewayScope
 from bop_integration.serializers import BopEventEnvelopeSerializer
+from bop_integration.services import ingest_prospect_ready_for_crm
 
 logger = logging.getLogger(__name__)
 
@@ -194,69 +195,145 @@ class BopEventGatewayView(APIView):
                 duplicate_filter |= Q(idempotency_key=idempotency_key)
 
             existing_log = BopEventLog.objects.filter(org=target_org).filter(duplicate_filter).first()
-            if existing_log:
-                logger.info(
-                    "Bop event gateway: duplicate event %s (source=%s) for org %s",
-                    event_id,
-                    source_app,
-                    target_org.id,
-                )
-                return Response(
-                    {
-                        "status": "duplicate",
-                        "event_id": event_id,
-                        "processed": False,
-                    },
-                    status=status.HTTP_200_OK,
-                )
+            is_retry = False
 
-            try:
-                BopEventLog.objects.create(
-                    org=target_org,
-                    event_id=event_id,
-                    source_app=source_app,
-                    event_type=event_type,
-                    event_version=event_version,
-                    correlation_id=correlation_id,
-                    causation_id=causation_id,
-                    external_entity_type=external_entity_type,
-                    external_entity_id=external_entity_id,
-                    idempotency_key=idempotency_key,
-                    payload=payload,
-                    metadata=metadata,
-                    status="received",
-                    received_at=occurred_at,
-                )
-                logger.info(
-                    "Bop event gateway: received event %s (type=%s, source=%s) for org %s",
-                    event_id,
-                    event_type,
-                    source_app,
-                    target_org.id,
-                )
-                return Response(
-                    {
-                        "status": "received",
-                        "event_id": event_id,
-                        "processed": False,
-                    },
-                    status=status.HTTP_201_CREATED,
-                )
-            except IntegrityError:
-                # Handle concurrent duplicate ingestion race condition gracefully
-                logger.info(
-                    "Bop event gateway: concurrent duplicate race for event %s for org %s",
-                    event_id,
-                    target_org.id,
-                )
-                return Response(
-                    {
-                        "status": "duplicate",
-                        "event_id": event_id,
-                        "processed": False,
-                    },
-                    status=status.HTTP_200_OK,
-                )
+            if existing_log:
+                if existing_log.status == "processed":
+                    logger.info(
+                        "Bop event gateway: duplicate processed event %s (source=%s) for org %s",
+                        event_id,
+                        source_app,
+                        target_org.id,
+                    )
+                    return Response(
+                        {
+                            "status": "duplicate",
+                            "duplicate": True,
+                            "event_id": event_id,
+                            "processed": True,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                elif existing_log.status == "failed" and event_type == "prospect.ready_for_crm" and event_version == 2:
+                    logger.info(
+                        "Bop event gateway: retrying failed event %s (source=%s) for org %s",
+                        event_id,
+                        source_app,
+                        target_org.id,
+                    )
+                    event_log = existing_log
+                    is_retry = True
+                else:
+                    logger.info(
+                        "Bop event gateway: duplicate event %s (source=%s, status=%s) for org %s",
+                        event_id,
+                        source_app,
+                        existing_log.status,
+                        target_org.id,
+                    )
+                    return Response(
+                        {
+                            "status": "duplicate",
+                            "duplicate": True,
+                            "event_id": event_id,
+                            "processed": False,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+            else:
+                try:
+                    event_log = BopEventLog.objects.create(
+                        org=target_org,
+                        event_id=event_id,
+                        source_app=source_app,
+                        event_type=event_type,
+                        event_version=event_version,
+                        correlation_id=correlation_id,
+                        causation_id=causation_id,
+                        external_entity_type=external_entity_type,
+                        external_entity_id=external_entity_id,
+                        idempotency_key=idempotency_key,
+                        payload=payload,
+                        metadata=metadata,
+                        status="received",
+                        received_at=occurred_at,
+                    )
+                except IntegrityError:
+                    # Handle concurrent duplicate ingestion race condition gracefully
+                    logger.info(
+                        "Bop event gateway: concurrent duplicate race for event %s for org %s",
+                        event_id,
+                        target_org.id,
+                    )
+                    existing_log = BopEventLog.objects.filter(org=target_org).filter(duplicate_filter).first()
+                    is_processed = (existing_log.status == "processed") if existing_log else False
+                    return Response(
+                        {
+                            "status": "duplicate",
+                            "duplicate": True,
+                            "event_id": event_id,
+                            "processed": is_processed,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+
+            # 6. Business Ingestion Dispatch for canonical prospect.ready_for_crm v2
+            if event_type == "prospect.ready_for_crm" and event_version == 2:
+                try:
+                    ingest_result = ingest_prospect_ready_for_crm(event_log)
+                    event_log.status = "processed"
+                    event_log.processed_at = timezone.now()
+                    event_log.last_error = None
+                    event_log.save(update_fields=["status", "processed_at", "last_error"])
+                    logger.info(
+                        "Bop event gateway: processed prospect event %s (lead=%s, account=%s) for org %s",
+                        event_id,
+                        getattr(ingest_result.get("lead"), "id", None),
+                        getattr(ingest_result.get("account"), "id", None),
+                        target_org.id,
+                    )
+                    resp_status = status.HTTP_200_OK if is_retry else status.HTTP_201_CREATED
+                    return Response(
+                        {
+                            "status": "processed",
+                            "event_id": event_id,
+                            "processed": True,
+                        },
+                        status=resp_status,
+                    )
+                except Exception as exc:
+                    logger.exception("Bop event gateway: business ingestion failed for event %s: %s", event_id, exc)
+                    safe_error = str(exc)[:500]
+                    try:
+                        event_log.status = "failed"
+                        event_log.last_error = safe_error
+                        event_log.save(update_fields=["status", "last_error"])
+                    except Exception as log_err:
+                        logger.error("Failed to update BopEventLog to failed: %s", log_err)
+                    return Response(
+                        {
+                            "detail": f"Business entity ingestion failed: {safe_error}",
+                            "event_id": event_id,
+                            "status": "failed",
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+
+            logger.info(
+                "Bop event gateway: received event %s (type=%s, source=%s) for org %s",
+                event_id,
+                event_type,
+                source_app,
+                target_org.id,
+            )
+            return Response(
+                {
+                    "status": "received",
+                    "event_id": event_id,
+                    "processed": False,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         finally:
             clear_rls_context()
 
