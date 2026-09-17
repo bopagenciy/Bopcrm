@@ -142,7 +142,7 @@
       {#if data.tickets.length === 0}
         <EmptyState
           title="No support tickets"
-          body="When you need help with BottleCRM, open a ticket here. Replies and status changes stay attached to it."
+          body="When you need help with BOP CRM, open a ticket here. Replies and status changes stay attached to it."
         >
           {#snippet icon()}<LifeBuoy size={21} />{/snippet}
           {#snippet actions()}

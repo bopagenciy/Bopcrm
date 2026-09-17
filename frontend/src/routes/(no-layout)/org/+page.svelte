@@ -14,14 +14,14 @@
 </script>
 
 <svelte:head>
-  <title>Choose organisation · BottleCRM</title>
+  <title>Choose organisation · BOP CRM</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={imgLogo} alt="" />
-      <b>BottleCRM</b>
+      <img src={imgLogo} alt="BOP CRM" />
+      <b>BOP CRM</b>
     </a>
 
     <div class="v2-auth-card">
@@ -78,7 +78,7 @@
         <div class="v2-state" style="padding:22px 0 8px">
           <div class="v2-state-icon"><Building2 size={22} /></div>
           <h3>No organisations yet</h3>
-          <p>Create your first workspace to start using BottleCRM.</p>
+          <p>Create your first workspace to start using BOP CRM.</p>
           <a href={resolve('/org/new')} class="v2-btn v2-btn-primary">
             <Plus size={15} />
             Create organisation

@@ -41,14 +41,14 @@
 </script>
 
 <svelte:head>
-  <title>Create organisation · BottleCRM</title>
+  <title>Create organisation · BOP CRM</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={imgLogo} alt="" />
-      <b>BottleCRM</b>
+      <img src={imgLogo} alt="BOP CRM" />
+      <b>BOP CRM</b>
     </a>
 
     <div class="v2-auth-card">
@@ -79,7 +79,7 @@
             required
             disabled={isSubmitting || !!form?.data}
           />
-          <p class="v2-hint">This becomes your workspace name in BottleCRM.</p>
+          <p class="v2-hint">This becomes your workspace name in BOP CRM.</p>
         </div>
 
         <div class="v2-field">

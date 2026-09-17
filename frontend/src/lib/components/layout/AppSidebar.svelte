@@ -60,7 +60,7 @@
    */
 
   /** @type {Props} */
-  let { user = {}, org_name = 'BottleCRM', org_settings = {} } = $props();
+  let { user = {}, org_name = 'BOP CRM', org_settings = {} } = $props();
 
   // Tier badge. Hidden when JWT doesn't carry one (spec §8 "No tier in JWT")
   const tier = $derived(org_settings?.tier ?? null);

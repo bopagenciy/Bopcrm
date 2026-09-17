@@ -8,15 +8,15 @@
 </script>
 
 <svelte:head>
-  <title>Verifying · BottleCRM</title>
+  <title>Verifying · BOP CRM</title>
   <meta name="referrer" content="no-referrer" />
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={imgLogo} alt="" />
-      <b>BottleCRM</b>
+      <img src={imgLogo} alt="BOP CRM" />
+      <b>BOP CRM</b>
     </a>
 
     <div class="v2-auth-card" style="text-align:center">

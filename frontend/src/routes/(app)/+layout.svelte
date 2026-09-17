@@ -51,7 +51,7 @@
 </script>
 
 <svelte:head>
-  <title>BottleCRM v2</title>
+  <title>BOP CRM</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 

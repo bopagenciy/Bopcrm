@@ -37,18 +37,18 @@
 </script>
 
 <svelte:head>
-  <title>Sign in · BottleCRM</title>
+  <title>Sign in · BOP CRM</title>
   <meta
     name="description"
-    content="Sign in to BottleCRM to manage your contacts, deals, and grow your business."
+    content="Sign in to BOP CRM to manage your contacts, deals, and grow your business."
   />
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={imgLogo} alt="" />
-      <b>BottleCRM</b>
+      <img src={imgLogo} alt="BOP CRM" />
+      <b>BOP CRM</b>
     </a>
 
     <div class="v2-auth-card">

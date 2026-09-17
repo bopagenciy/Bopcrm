@@ -57,7 +57,7 @@
    */
   let {
     counts = {},
-    org = { name: 'BottleCRM' },
+    org = { name: 'BOP CRM' },
     role = 'USER',
     terminology = undefined,
     onsearch = () => {}

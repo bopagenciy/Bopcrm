@@ -56,7 +56,7 @@
 
   /** @param {any} n */
   function actorLabel(n) {
-    if (n.verb?.startsWith('support.')) return 'BottleCRM Support';
+    if (n.verb?.startsWith('support.')) return 'BOP CRM Support';
     return n.actor?.user_details?.email || 'System';
   }
 

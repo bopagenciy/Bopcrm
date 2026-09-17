@@ -168,7 +168,7 @@
             <div class="body">
               <p class="line">
                 {#if isSupportNotification(n)}
-                  <b class="system">BottleCRM Support</b>
+                  <b class="system">BOP CRM Support</b>
                 {:else if n.actor}
                   <Avatar name={n.actor.name} size={17} />
                   <b>{n.actor.name}</b>

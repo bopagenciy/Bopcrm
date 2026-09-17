@@ -39,7 +39,7 @@ export const actions = {
         body,
         error:
           error?.status === 404
-            ? 'This deployment has no BottleCRM support queue. The help page lists the ways to reach us.'
+            ? 'This deployment has no BOP CRM support queue. The help page lists the ways to reach us.'
             : readableError(error, 'Could not open this support ticket.')
       });
     }
