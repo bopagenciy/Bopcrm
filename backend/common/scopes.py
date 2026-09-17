@@ -66,6 +66,7 @@ API_RESOURCES = frozenset(
         "dashboard",
         "documents",
         "invoices",
+        "integrations",
         "leads",
         "macros",
         "notifications",

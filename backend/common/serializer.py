@@ -1233,6 +1233,7 @@ class PersonalAccessTokenListSerializer(serializers.ModelSerializer):
             "name",
             "token_prefix",
             "scopes",
+            "source_app",
             "expires_at",
             "last_used_at",
             "created_at",
@@ -1244,7 +1245,19 @@ class PersonalAccessTokenListSerializer(serializers.ModelSerializer):
 class PersonalAccessTokenCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PersonalAccessToken
-        fields = ("name", "scopes", "expires_at")
+        fields = ("name", "scopes", "expires_at", "source_app")
+
+    def validate_source_app(self, value):
+        from bop_integration.constants import RECOGNIZED_SOURCE_APPS
+
+        if value in (None, ""):
+            return None
+        normalized = value.strip().lower()
+        if normalized not in RECOGNIZED_SOURCE_APPS:
+            raise serializers.ValidationError(
+                f"Unsupported source_app '{value}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
+            )
+        return normalized
 
     def validate_name(self, value):
         value = (value or "").strip()

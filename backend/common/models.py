@@ -8,12 +8,14 @@ import uuid
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 
+from bop_integration.constants import BOP_SOURCE_APP_CHOICES, RECOGNIZED_SOURCE_APPS
 from common.base import BaseModel, BaseOrgModel
 from common.utils import (
     COUNTRIES,
@@ -1002,6 +1004,14 @@ class PersonalAccessToken(BaseOrgModel):
     # See common/scopes.py for the grammar and for the credential deny-list that
     # applies regardless of what is stored here.
     scopes = models.JSONField(default=list, blank=True)
+    source_app = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        db_index=True,
+        choices=BOP_SOURCE_APP_CHOICES,
+        help_text="Authenticated Bop Universe source application identity bound to this token",
+    )
     expires_at = models.DateTimeField(null=True, blank=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
@@ -1015,7 +1025,11 @@ class PersonalAccessToken(BaseOrgModel):
         return hashlib.sha256(raw.encode()).hexdigest()
 
     @classmethod
-    def generate(cls, profile, name, scopes=None, expires_at=None):
+    def generate(cls, profile, name, scopes=None, expires_at=None, source_app=None):
+        if source_app and source_app not in RECOGNIZED_SOURCE_APPS:
+            raise ValidationError(
+                f"Unsupported source_app '{source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
+            )
         raw = generate_pat_raw()
         pat = cls.objects.create(
             org=profile.org,
@@ -1025,9 +1039,24 @@ class PersonalAccessToken(BaseOrgModel):
             token_prefix=raw[:13],
             scopes=scopes or [],
             expires_at=expires_at,
+            source_app=source_app,
             created_by=profile.user,
         )
         return raw, pat
+
+    def clean(self):
+        super().clean()
+        if self.source_app and self.source_app not in RECOGNIZED_SOURCE_APPS:
+            raise ValidationError(
+                f"Unsupported source_app '{self.source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
+            )
+
+    def save(self, *args, **kwargs):
+        if self.source_app and self.source_app not in RECOGNIZED_SOURCE_APPS:
+            raise ValidationError(
+                f"Unsupported source_app '{self.source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
+            )
+        super().save(*args, **kwargs)
 
     def is_valid(self):
         if self.revoked_at is not None:

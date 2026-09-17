@@ -67,6 +67,7 @@ class PersonalAccessTokenListCreateView(APIView):
             name=ser.validated_data["name"],
             scopes=ser.validated_data.get("scopes", []),
             expires_at=ser.validated_data.get("expires_at"),
+            source_app=ser.validated_data.get("source_app"),
         )
         data = PersonalAccessTokenListSerializer(pat).data
         data["token"] = raw  # shown ONCE, never retrievable again

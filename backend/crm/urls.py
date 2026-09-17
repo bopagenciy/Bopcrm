@@ -14,9 +14,9 @@ from drf_spectacular.views import (
 
 from common.converters import UUIDLikeConverter
 
-# Registered on the root URLconf so every app's `<uid:...>` segment resolves.
-# See common/converters.py for why this exists and why it is not `<uuid:...>`.
-register_converter(UUIDLikeConverter, "uid")
+from django.urls.converters import get_converters
+if "uid" not in get_converters():
+    register_converter(UUIDLikeConverter, "uid")
 
 # drf-spectacular maps a converter name to an OpenAPI type; an unknown one
 # falls back to a bare string. Without this the published schema would describe
@@ -33,6 +33,10 @@ urlpatterns = [
         name="healthz",
     ),
     path("api/", include("common.app_urls", namespace="common_urls")),
+    path(
+        "api/integrations/bop/v1/",
+        include("bop_integration.urls", namespace="bop_integration"),
+    ),
     # Public portal endpoints (no auth required)
     path("api/public/", include("invoices.public_urls", namespace="public_invoices")),
     # Public web form endpoints (issue #634). Anonymous by design: an embedded
