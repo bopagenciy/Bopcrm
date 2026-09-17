@@ -102,6 +102,13 @@ def generate_unique_key():
 class Org(BaseModel):
     name = models.CharField(max_length=100, blank=True, null=True)
     api_key = models.TextField(default=generate_unique_key, unique=True, editable=False)
+    bop_organization_id = models.UUIDField(
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Global Bop Universe Organization UUID",
+    )
     is_active = models.BooleanField(default=True)
 
     # Company Profile (for invoices, documents, etc.)

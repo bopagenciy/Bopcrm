@@ -141,6 +141,9 @@ ORG_SCOPED_TABLES = [
     "web_form_field",
     "web_form_submission",
     "web_form_daily_stat",
+    # Bop Universe Integration
+    "external_entity_map",
+    "bop_event_log",
     # Programmatic API access
     # NOTE: personal_access_token is intentionally NOT RLS-protected. It is an
     # auth-bootstrap table (looked up by token_hash before any tenant context

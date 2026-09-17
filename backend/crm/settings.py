@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     "business_hours",
     "macros",
     "webforms",
+    "bop_integration",
     # "teams",  # Merged into common app
 ]
 

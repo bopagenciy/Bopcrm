@@ -126,6 +126,7 @@ docs = [
 # went missing. common/tests/test_packaging.py fails if the two drift apart.
 packages = [
     "accounts",
+    "bop_integration",
     "business_hours",
     "cases",
     "common",
@@ -143,6 +144,7 @@ packages = [
 [tool.hatch.build.targets.sdist]
 include = [
     "accounts/",
+    "bop_integration/",
     "business_hours/",
     "cases/",
     "common/",
