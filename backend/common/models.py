@@ -15,7 +15,12 @@ from django.utils.text import slugify
 from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 
-from bop_integration.constants import BOP_SOURCE_APP_CHOICES, RECOGNIZED_SOURCE_APPS
+from bop_integration.constants import (
+    BOP_SOURCE_APP_CHOICES,
+    CANONICAL_SOURCE_APPS,
+    RECOGNIZED_SOURCE_APPS,
+    normalize_source_app,
+)
 from common.base import BaseModel, BaseOrgModel
 from common.utils import (
     COUNTRIES,
@@ -1026,10 +1031,13 @@ class PersonalAccessToken(BaseOrgModel):
 
     @classmethod
     def generate(cls, profile, name, scopes=None, expires_at=None, source_app=None):
-        if source_app and source_app not in RECOGNIZED_SOURCE_APPS:
-            raise ValidationError(
-                f"Unsupported source_app '{source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
-            )
+        if source_app:
+            norm_app = normalize_source_app(source_app)
+            if norm_app not in CANONICAL_SOURCE_APPS:
+                raise ValidationError(
+                    f"Unsupported source_app '{source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
+                )
+            source_app = norm_app
         raw = generate_pat_raw()
         pat = cls.objects.create(
             org=profile.org,
@@ -1046,16 +1054,22 @@ class PersonalAccessToken(BaseOrgModel):
 
     def clean(self):
         super().clean()
-        if self.source_app and self.source_app not in RECOGNIZED_SOURCE_APPS:
-            raise ValidationError(
-                f"Unsupported source_app '{self.source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
-            )
+        if self.source_app:
+            norm_app = normalize_source_app(self.source_app)
+            if norm_app not in CANONICAL_SOURCE_APPS:
+                raise ValidationError(
+                    f"Unsupported source_app '{self.source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
+                )
+            self.source_app = norm_app
 
     def save(self, *args, **kwargs):
-        if self.source_app and self.source_app not in RECOGNIZED_SOURCE_APPS:
-            raise ValidationError(
-                f"Unsupported source_app '{self.source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
-            )
+        if self.source_app:
+            norm_app = normalize_source_app(self.source_app)
+            if norm_app not in CANONICAL_SOURCE_APPS:
+                raise ValidationError(
+                    f"Unsupported source_app '{self.source_app}'. Must be one of: {', '.join(sorted(RECOGNIZED_SOURCE_APPS))}"
+                )
+            self.source_app = norm_app
         super().save(*args, **kwargs)
 
     def is_valid(self):

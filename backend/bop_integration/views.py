@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from common.models import Org
 from common.pat_auth import PATAuthentication
 from common.tasks import clear_rls_context, set_rls_context
+from bop_integration.constants import normalize_source_app
 from bop_integration.models import BopEventLog
 from bop_integration.permissions import HasBopEventGatewayScope
 from bop_integration.serializers import BopEventEnvelopeSerializer
@@ -115,7 +116,8 @@ class BopEventGatewayView(APIView):
         validated_data = serializer.validated_data
         bop_org_id = validated_data["bop_organization_id"]
         event_id = validated_data["event_id"]
-        payload_source_app = validated_data["source_app"]
+        payload_source_app = validated_data.get("source_app")
+        canonical_payload_app = validated_data.get("canonical_producer_app") or normalize_source_app(payload_source_app)
 
         # 3. Source Application Authenticity Enforcement (CRM-I1B.2)
         pat = getattr(request, "_pat", None) or getattr(request, "auth", None)
@@ -130,7 +132,8 @@ class BopEventGatewayView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if pat_source_app != payload_source_app:
+        canonical_pat_app = normalize_source_app(pat_source_app)
+        if canonical_pat_app != canonical_payload_app:
             logger.warning(
                 "Bop event gateway: source_app mismatch for event %s (token '%s' != payload '%s')",
                 event_id,
@@ -171,11 +174,16 @@ class BopEventGatewayView(APIView):
             )
 
         # 5. Tenant-Scoped Ingestion & Idempotency Check under RLS Context
-        source_app = validated_data["source_app"]
+        source_app = canonical_payload_app
         event_type = validated_data["event_type"]
+        event_version = validated_data.get("event_version", 1)
+        correlation_id = validated_data.get("correlation_id") or ""
+        causation_id = validated_data.get("causation_id") or None
+        external_entity_type = validated_data.get("external_entity_type") or ""
         external_entity_id = validated_data.get("external_entity_id") or ""
         idempotency_key = validated_data.get("idempotency_key") or ""
         payload = validated_data.get("payload") or {}
+        metadata = validated_data.get("metadata") or {}
         occurred_at = validated_data.get("occurred_at") or timezone.now()
 
         set_rls_context(target_org.id)
@@ -208,9 +216,14 @@ class BopEventGatewayView(APIView):
                     event_id=event_id,
                     source_app=source_app,
                     event_type=event_type,
+                    event_version=event_version,
+                    correlation_id=correlation_id,
+                    causation_id=causation_id,
+                    external_entity_type=external_entity_type,
                     external_entity_id=external_entity_id,
                     idempotency_key=idempotency_key,
                     payload=payload,
+                    metadata=metadata,
                     status="received",
                     received_at=occurred_at,
                 )

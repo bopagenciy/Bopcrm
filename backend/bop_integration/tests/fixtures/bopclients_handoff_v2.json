@@ -1,0 +1,34 @@
+{
+  "event_id": "8f3957bd-ea2e-4b47-9759-865fa500e572",
+  "event_type": "prospect.ready_for_crm",
+  "event_version": 2,
+  "occurred_at": "2026-09-16T18:00:00.000000+00:00",
+  "producer_app": "bopclients",
+  "bop_organization_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "subject": {
+    "bop_organization_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "application_id": "bopclients",
+    "entity_type": "prospect",
+    "entity_id": "prsp_987654321"
+  },
+  "correlation_id": "0194e824-3481-79b8-bb65-021b72a6a61d",
+  "causation_id": null,
+  "payload": {
+    "prospect_id": "prsp_987654321",
+    "company_name": "Solaris Energy Corp",
+    "website": "https://solaris-energy.example.com",
+    "industry": "Clean Energy",
+    "location": "Denver, CO, USA",
+    "lead_score": 88,
+    "priority": "HIGH",
+    "campaign_id": "cmp_123456789",
+    "signal_summary": null,
+    "source": "discovery",
+    "prospect_url": "https://app.bopclients.com/prospects/prsp_987654321",
+    "handoff_requested_by": "usr_alpha_admin",
+    "handoff_requested_at": "2026-09-16T18:00:00.000000+00:00",
+    "recommended_action": "handoff_to_crm",
+    "human_review_required": false
+  },
+  "metadata": {}
+}

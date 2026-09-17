@@ -888,3 +888,341 @@ class BopEventGatewayTestCase(TestCase):
         set_rls_context(self.org_b.id)
         self.assertEqual(BopEventLog.objects.filter(event_id=event_uuid).count(), 0)
         clear_rls_context()
+
+
+class CanonicalBopClientsCompatibilityTestCase(TestCase):
+    """
+    Targeted test suite for Phase CRM-I1C.1:
+    Canonical Bop Clients Envelope Compatibility (prospect.ready_for_crm v2).
+    """
+
+    def setUp(self):
+        self.bop_org_id = uuid.uuid4()
+        self.org = Org.objects.create(name="Canonical Test Org", bop_organization_id=self.bop_org_id)
+
+        uid = uuid.uuid4().hex[:8]
+        self.user = User.objects.create_user(email=f"canonical_admin_{uid}@test.com", password="pass")
+        self.profile = Profile.objects.create(user=self.user, org=self.org, role="ADMIN")
+
+        # Canonical PAT with source_app="bopclients"
+        self.raw_pat, self.pat = PersonalAccessToken.generate(
+            profile=self.profile,
+            name="Canonical PAT",
+            scopes=["integrations:write"],
+            source_app="bopclients",
+        )
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.raw_pat}")
+
+        # Legacy PAT with source_app="bop_clients"
+        self.raw_pat_legacy, self.pat_legacy = PersonalAccessToken.generate(
+            profile=self.profile,
+            name="Legacy PAT",
+            scopes=["integrations:write"],
+            source_app="bop_clients",
+        )
+        self.client_legacy = APIClient()
+        self.client_legacy.credentials(HTTP_AUTHORIZATION=f"Bearer {self.raw_pat_legacy}")
+
+        # Wrong PAT with source_app="boperp"
+        self.raw_pat_erp, self.pat_erp = PersonalAccessToken.generate(
+            profile=self.profile,
+            name="ERP PAT",
+            scopes=["integrations:write"],
+            source_app="boperp",
+        )
+        self.client_erp = APIClient()
+        self.client_erp.credentials(HTTP_AUTHORIZATION=f"Bearer {self.raw_pat_erp}")
+
+    def tearDown(self):
+        clear_rls_context()
+        super().tearDown()
+
+    def get_canonical_fixture(self):
+        """Build a pristine canonical BopIntegrationEvent.to_dict() payload for Org."""
+        event_id = str(uuid.uuid4())
+        corr_id = str(uuid.uuid4())
+        return {
+            "event_id": event_id,
+            "event_type": "prospect.ready_for_crm",
+            "event_version": 2,
+            "occurred_at": "2026-09-16T18:00:00.000000+00:00",
+            "producer_app": "bopclients",
+            "bop_organization_id": str(self.bop_org_id),
+            "subject": {
+                "bop_organization_id": str(self.bop_org_id),
+                "application_id": "bopclients",
+                "entity_type": "prospect",
+                "entity_id": "prsp_987654321",
+            },
+            "correlation_id": corr_id,
+            "causation_id": None,
+            "payload": {
+                "prospect_id": "prsp_987654321",
+                "company_name": "Solaris Energy Corp",
+                "website": "https://solaris-energy.example.com",
+                "industry": "Clean Energy",
+                "location": "Denver, CO, USA",
+                "lead_score": 88,
+                "priority": "HIGH",
+                "campaign_id": "cmp_123456789",
+                "signal_summary": None,
+                "source": "discovery",
+                "prospect_url": "https://app.bopclients.com/prospects/prsp_987654321",
+                "handoff_requested_by": "usr_alpha_admin",
+                "handoff_requested_at": "2026-09-16T18:00:00.000000+00:00",
+                "recommended_action": "handoff_to_crm",
+                "human_review_required": False,
+            },
+            "metadata": {},
+        }
+
+    def test_a_canonical_bopclients_v2_envelope_accepted(self):
+        """A. canonical Bop Clients v2 envelope -> 201 Created and properly stored."""
+        envelope = self.get_canonical_fixture()
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["status"], "received")
+        self.assertEqual(res.data["event_id"], envelope["event_id"])
+        self.assertFalse(res.data["processed"])
+
+        set_rls_context(self.org.id)
+        log = BopEventLog.objects.get(event_id=envelope["event_id"])
+        self.assertEqual(log.source_app, "bopclients")
+        self.assertEqual(log.event_type, "prospect.ready_for_crm")
+        self.assertEqual(log.event_version, 2)
+        self.assertEqual(log.correlation_id, envelope["correlation_id"])
+        self.assertIsNone(log.causation_id)
+        self.assertEqual(log.external_entity_id, "prsp_987654321")
+        self.assertEqual(log.external_entity_type, "prospect")
+        self.assertEqual(log.payload["company_name"], "Solaris Energy Corp")
+        self.assertEqual(log.metadata, {})
+        clear_rls_context()
+
+    def test_b_duplicate_deterministic_event_id(self):
+        """B. duplicate deterministic event_id -> 200 duplicate, exactly one log row."""
+        envelope = self.get_canonical_fixture()
+        res1 = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+
+        res2 = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res2.status_code, status.HTTP_200_OK)
+        self.assertEqual(res2.data["status"], "duplicate")
+        self.assertEqual(res2.data["event_id"], envelope["event_id"])
+
+        set_rls_context(self.org.id)
+        self.assertEqual(BopEventLog.objects.filter(event_id=envelope["event_id"]).count(), 1)
+        clear_rls_context()
+
+    def test_c_producer_app_bopclients_recognized(self):
+        """C. producer_app=bopclients recognized and persisted canonically."""
+        envelope = self.get_canonical_fixture()
+        envelope["producer_app"] = "bopclients"
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        set_rls_context(self.org.id)
+        log = BopEventLog.objects.get(event_id=envelope["event_id"])
+        self.assertEqual(log.source_app, "bopclients")
+        clear_rls_context()
+
+    def test_d_pat_source_app_bopclients_matches_producer(self):
+        """D. PAT source_app=bopclients matches producer (and legacy alias bop_clients normalizes)."""
+        # Canonical token
+        envelope1 = self.get_canonical_fixture()
+        res1 = self.client.post("/api/integrations/bop/v1/events/", envelope1, format="json")
+        self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+
+        # Legacy token with bop_clients sends canonical bopclients
+        envelope2 = self.get_canonical_fixture()
+        res2 = self.client_legacy.post("/api/integrations/bop/v1/events/", envelope2, format="json")
+        self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
+
+    def test_e_pat_source_mismatch_forbidden(self):
+        """E. PAT source mismatch -> 403 Forbidden."""
+        envelope = self.get_canonical_fixture()
+        res = self.client_erp.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("Source application mismatch", str(res.data))
+
+    def test_f_envelope_org_mismatch_subject_org_rejected(self):
+        """F. envelope org != subject org -> 400 Bad Request."""
+        envelope = self.get_canonical_fixture()
+        envelope["subject"]["bop_organization_id"] = str(uuid.uuid4())
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Tenant mismatch", str(res.data))
+
+    def test_g_producer_app_mismatch_subject_application_id_rejected(self):
+        """G. producer_app != subject.application_id -> 400 Bad Request."""
+        envelope = self.get_canonical_fixture()
+        envelope["subject"]["application_id"] = "boperp"
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Application mismatch", str(res.data))
+
+    def test_h_subject_entity_id_mismatch_payload_prospect_id_rejected(self):
+        """H. subject.entity_id != payload.prospect_id -> 400 Bad Request."""
+        envelope = self.get_canonical_fixture()
+        envelope["payload"]["prospect_id"] = "prsp_mismatch_id"
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("does not match payload prospect_id", str(res.data))
+
+    def test_i_subject_entity_type_not_prospect_rejected(self):
+        """I. subject entity_type != prospect -> 400 Bad Request."""
+        envelope = self.get_canonical_fixture()
+        envelope["subject"]["entity_type"] = "deal"
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("requires subject.entity_type='prospect'", str(res.data))
+
+    def test_j_unsupported_event_version_rejected(self):
+        """J. unsupported event_version -> 400 Bad Request."""
+        # Version 3 unsupported
+        envelope = self.get_canonical_fixture()
+        envelope["event_version"] = 3
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Unsupported event_version", str(res.data))
+
+        # Version 0 invalid
+        envelope2 = self.get_canonical_fixture()
+        envelope2["event_version"] = 0
+        res2 = self.client.post("/api/integrations/bop/v1/events/", envelope2, format="json")
+        self.assertEqual(res2.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_k_invalid_correlation_id_rejected(self):
+        """K. invalid correlation_id -> 400 Bad Request."""
+        # Malformed string
+        envelope = self.get_canonical_fixture()
+        envelope["correlation_id"] = "not-a-valid-uuid"
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("correlation_id", str(res.data))
+
+        # Missing on canonical Bop Clients event
+        envelope2 = self.get_canonical_fixture()
+        del envelope2["correlation_id"]
+        res2 = self.client.post("/api/integrations/bop/v1/events/", envelope2, format="json")
+        self.assertEqual(res2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("correlation_id", str(res2.data))
+
+    def test_l_invalid_causation_id_rejected(self):
+        """L. invalid causation_id -> 400 Bad Request."""
+        envelope = self.get_canonical_fixture()
+        envelope["causation_id"] = "not-a-uuid"
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("causation_id", str(res.data))
+
+    def test_m_metadata_non_object_rejected(self):
+        """M. metadata non-object -> 400 Bad Request."""
+        envelope = self.get_canonical_fixture()
+        envelope["metadata"] = "just a string"
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("metadata", str(res.data))
+
+        envelope2 = self.get_canonical_fixture()
+        envelope2["metadata"] = ["item1", "item2"]
+        res2 = self.client.post("/api/integrations/bop/v1/events/", envelope2, format="json")
+        self.assertEqual(res2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("metadata", str(res2.data))
+
+    def test_n_prohibited_pii_payload_keys_rejected(self):
+        """N. prohibited PII payload keys -> 400 Bad Request."""
+        prohibited_keys = [
+            "email",
+            "phone",
+            "first_name",
+            "last_name",
+            "contact_name",
+            "primary_contact",
+        ]
+        for pii in prohibited_keys:
+            envelope = self.get_canonical_fixture()
+            envelope["payload"][pii] = "unauthorized_pii_value"
+            res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+            self.assertEqual(
+                res.status_code,
+                status.HTTP_400_BAD_REQUEST,
+                f"Expected 400 rejection for PII key '{pii}'",
+            )
+            self.assertIn("prohibited PII", str(res.data))
+
+    def test_o_canonical_envelope_creates_exactly_one_event_log(self):
+        """O. canonical envelope creates exactly one BopEventLog row."""
+        set_rls_context(self.org.id)
+        before_count = BopEventLog.objects.filter(org=self.org).count()
+        clear_rls_context()
+
+        envelope = self.get_canonical_fixture()
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        set_rls_context(self.org.id)
+        after_count = BopEventLog.objects.filter(org=self.org).count()
+        clear_rls_context()
+        self.assertEqual(after_count, before_count + 1)
+
+    def test_p_zero_crm_business_entities_created(self):
+        """P. zero CRM business entities created (Lead, Account, Contact, Opportunity counts unchanged)."""
+        set_rls_context(self.org.id)
+        before_leads = Lead.objects.count()
+        before_accounts = Account.objects.count()
+        before_contacts = Contact.objects.count()
+        before_opps = Opportunity.objects.count()
+        clear_rls_context()
+
+        envelope = self.get_canonical_fixture()
+        res = self.client.post("/api/integrations/bop/v1/events/", envelope, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        set_rls_context(self.org.id)
+        self.assertEqual(Lead.objects.count(), before_leads)
+        self.assertEqual(Account.objects.count(), before_accounts)
+        self.assertEqual(Contact.objects.count(), before_contacts)
+        self.assertEqual(Opportunity.objects.count(), before_opps)
+        clear_rls_context()
+
+    def test_q_alias_conflicts_and_backward_compatibility(self):
+        """Q. Alias conflicts and backward compatibility verification."""
+        # 1. Matching aliases: producer_app=bopclients, source_app=bop_clients -> accepted
+        envelope1 = self.get_canonical_fixture()
+        envelope1["source_app"] = "bop_clients"
+        res1 = self.client.post("/api/integrations/bop/v1/events/", envelope1, format="json")
+        self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+
+        # 2. Contradictory aliases: producer_app=bopclients, source_app=boperp -> 400
+        envelope2 = self.get_canonical_fixture()
+        envelope2["source_app"] = "boperp"
+        res2 = self.client.post("/api/integrations/bop/v1/events/", envelope2, format="json")
+        self.assertEqual(res2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Contradictory", str(res2.data))
+
+        # 3. Matching external_entity_id alias -> accepted
+        envelope3 = self.get_canonical_fixture()
+        envelope3["external_entity_id"] = "prsp_987654321"
+        res3 = self.client.post("/api/integrations/bop/v1/events/", envelope3, format="json")
+        self.assertEqual(res3.status_code, status.HTTP_201_CREATED)
+
+        # 4. Conflicting external_entity_id alias -> 400
+        envelope4 = self.get_canonical_fixture()
+        envelope4["external_entity_id"] = "prsp_different_id"
+        res4 = self.client.post("/api/integrations/bop/v1/events/", envelope4, format="json")
+        self.assertEqual(res4.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Conflict", str(res4.data))
+
+        # 5. Matching external_entity_type alias -> accepted
+        envelope5 = self.get_canonical_fixture()
+        envelope5["external_entity_type"] = "prospect"
+        res5 = self.client.post("/api/integrations/bop/v1/events/", envelope5, format="json")
+        self.assertEqual(res5.status_code, status.HTTP_201_CREATED)
+
+        # 6. Conflicting external_entity_type alias -> 400
+        envelope6 = self.get_canonical_fixture()
+        envelope6["external_entity_type"] = "account"
+        res6 = self.client.post("/api/integrations/bop/v1/events/", envelope6, format="json")
+        self.assertEqual(res6.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Conflict", str(res6.data))

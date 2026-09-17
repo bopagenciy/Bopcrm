@@ -174,6 +174,33 @@ class BopEventLog(BaseOrgModel):
         max_length=128,
         help_text="Domain event name (e.g., 'prospect.ready_for_crm')",
     )
+    event_version = models.PositiveIntegerField(
+        _("Event Version"),
+        default=1,
+        help_text="Canonical schema version of the event",
+    )
+    correlation_id = models.CharField(
+        _("Correlation ID"),
+        max_length=255,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Cross-application correlation identifier",
+    )
+    causation_id = models.CharField(
+        _("Causation ID"),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Direct causal event identifier",
+    )
+    external_entity_type = models.CharField(
+        _("External Entity Type"),
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text="Domain entity type in source application (e.g. 'prospect')",
+    )
     external_entity_id = models.CharField(
         _("External Entity ID"),
         max_length=255,
@@ -191,6 +218,11 @@ class BopEventLog(BaseOrgModel):
         default=dict,
         blank=True,
         help_text="Full event JSON payload",
+    )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Contextual event metadata dictionary",
     )
     status = models.CharField(
         _("Status"),
