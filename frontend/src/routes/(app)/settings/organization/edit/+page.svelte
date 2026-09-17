@@ -101,6 +101,33 @@
   let valid = $derived(Object.keys(errors).length === 0);
   const show = (/** @type {string} */ field) => (touched[field] || submitted) && errors[field];
 
+  let logoPreview = $state(/** @type {string | null} */ (null));
+  let logoError = $state(/** @type {string | null} */ (null));
+
+  function handleLogoChange(/** @type {Event} */ event) {
+    const input = /** @type {HTMLInputElement} */ (event.target);
+    const file = input.files?.[0];
+    logoError = null;
+    if (logoPreview) {
+      URL.revokeObjectURL(logoPreview);
+      logoPreview = null;
+    }
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      logoError = 'Logo file size must not exceed 2 MB.';
+      return;
+    }
+
+    const acceptedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!acceptedTypes.includes(file.type)) {
+      logoError = 'Only PNG, JPEG, and WebP images are supported.';
+      return;
+    }
+
+    logoPreview = URL.createObjectURL(file);
+  }
+
   /**
    * These checks are a UX hint. The serializer is the rule, and its 400 is what
    * `result.error` reports.
@@ -109,7 +136,7 @@
    */
   const check = async ({ cancel }) => {
     submitted = true;
-    if (!valid) {
+    if (!valid || logoError) {
       cancel();
       await tick();
       /** @type {HTMLElement | null} */
@@ -144,7 +171,14 @@
   </PageHeader>
 
   <div class="v2-scroll v2-pad" style="padding-top:18px">
-    <form class="v2-form" method="POST" action="?/save" use:enhance={check} novalidate>
+    <form
+      class="v2-form"
+      method="POST"
+      action="?/save"
+      enctype="multipart/form-data"
+      use:enhance={check}
+      novalidate
+    >
       {#if result?.error}
         <div
           class="v2-next"
@@ -199,6 +233,33 @@
         <label for="f-name">Trading name</label>
         <input id="f-name" name="name" class="v2-input" maxlength="100" bind:value={form.name} />
         <p class="v2-hint">What this organisation is called across the app.</p>
+      </div>
+
+      <div class="v2-field">
+        <label for="f-logo">Logo</label>
+        {#if org.logo_url || logoPreview}
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+            <img
+              src={logoPreview || org.logo_url}
+              alt={org.company_name || org.name || 'Organization logo'}
+              style="max-width:140px;max-height:48px;object-fit:contain;border:1px solid var(--v2-hairline);border-radius:6px;padding:3px;background:var(--v2-paper)"
+            />
+            <span class="v2-sub" style="font-size:12px">
+              {logoPreview ? 'Preview of selected logo' : 'Current logo'}
+            </span>
+          </div>
+        {/if}
+        <input
+          id="f-logo"
+          name="logo"
+          class="v2-input"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onchange={handleLogoChange}
+          aria-invalid={logoError ? 'true' : undefined}
+        />
+        <p class="v2-hint">Accepted formats: PNG, JPEG, WebP. Maximum file size: 2 MB.</p>
+        {#if logoError}<p class="v2-error">{logoError}</p>{/if}
       </div>
 
       <div class="pair">

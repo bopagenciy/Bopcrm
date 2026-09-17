@@ -49,7 +49,7 @@
    *
    * @type {{
    *   counts?: Record<string, number>,
-   *   org?: { name: string },
+   *   org?: { name: string, logo_url?: string | null },
    *   role?: string,
    *   terminology?: Record<string, string> | null,
    *   onsearch?: () => void
@@ -140,7 +140,15 @@
 
 <nav class="v2-nav" aria-label="Main">
   <div class="v2-org">
-    <span class="v2-mark">{org.name.slice(0, 1)}</span>
+    {#if org.logo_url}
+      <img
+        src={org.logo_url}
+        alt={org.name}
+        class="v2-org-logo"
+      />
+    {:else}
+      <span class="v2-mark">{org.name.slice(0, 1)}</span>
+    {/if}
     <b>{org.name}</b>
   </div>
 
@@ -227,5 +235,13 @@
     font-size: inherit;
     text-align: left;
     cursor: pointer;
+  }
+  .v2-org-logo {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    object-fit: contain;
+    flex: none;
+    background: var(--v2-paper);
   }
 </style>

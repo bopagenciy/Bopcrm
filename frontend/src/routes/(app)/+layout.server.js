@@ -121,6 +121,7 @@ export async function load(event) {
     counts: /** @type {Record<string, number>} */ ({}),
     org: {
       name: event.locals.org?.name || 'BottleCRM',
+      logo_url: /** @type {string | null | undefined} */ (null),
       terminology: /** @type {Record<string, string> | undefined} */ (undefined),
       // The currency for figures that are sums rather than one record: pipeline
       // totals, invoice ageing, goal progress. A per-record currency cannot
@@ -163,6 +164,7 @@ export async function load(event) {
   const terminologyResult = results[countKeys.length];
   if (terminologyResult.status === 'fulfilled') {
     shell.org.terminology = terminologyResult.value.terminology;
+    shell.org.logo_url = terminologyResult.value.logo_url;
   }
 
   return shell;

@@ -110,6 +110,16 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = ("id", "name")
 
 
+class TenantLogoImageField(serializers.ImageField):
+    """ImageField that validates maximum file size before Pillow decoding."""
+
+    def to_internal_value(self, data):
+        max_size = 2 * 1024 * 1024
+        if hasattr(data, "size") and data.size > max_size:
+            raise serializers.ValidationError("Logo file size must not exceed 2 MB.")
+        return super().to_internal_value(data)
+
+
 class OrgSettingsSerializer(serializers.ModelSerializer):
     """The org's own settings: company profile, locale, and case-handling switches.
 
@@ -135,6 +145,7 @@ class OrgSettingsSerializer(serializers.ModelSerializer):
     which is meant to record which pack was actually applied.
     """
 
+    logo = TenantLogoImageField(required=False, allow_null=True)
     currency_symbol = serializers.SerializerMethodField()
     logo_url = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
@@ -181,6 +192,34 @@ class OrgSettingsSerializer(serializers.ModelSerializer):
             "vertical",
             "terminology",
         ]
+
+    def validate_logo(self, value):
+        if not value:
+            return value
+
+        max_size = 2 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError("Logo file size must not exceed 2 MB.")
+
+        from PIL import Image
+
+        allowed_formats = {"PNG", "JPEG", "WEBP"}
+        try:
+            pos = value.tell()
+            with Image.open(value) as img:
+                img_format = (img.format or "").upper()
+            value.seek(pos)
+        except Exception:
+            raise serializers.ValidationError(
+                "Upload a valid raster image (PNG, JPEG, WebP)."
+            )
+
+        if img_format not in allowed_formats:
+            raise serializers.ValidationError(
+                f"Unsupported image format: '{img_format}'. Accepted formats: PNG, JPEG, WebP."
+            )
+
+        return value
 
     @extend_schema_field(str)
     def get_currency_symbol(self, obj):

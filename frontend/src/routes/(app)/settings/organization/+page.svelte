@@ -141,7 +141,19 @@
             <dt>Website</dt>
             <dd>{org.website || '—'}</dd>
             <dt>Logo</dt>
-            <dd>{org.logo_url ? 'Set' : 'Not set'}</dd>
+            <dd>
+              {#if org.logo_url}
+                <div style="display:inline-flex;align-items:center">
+                  <img
+                    src={org.logo_url}
+                    alt={org.company_name || org.name}
+                    style="max-width:140px;max-height:48px;object-fit:contain;border:1px solid var(--v2-hairline);border-radius:6px;padding:3px;background:var(--v2-paper)"
+                  />
+                </div>
+              {:else}
+                <span class="v2-sub">No logo uploaded</span>
+              {/if}
+            </dd>
           </dl>
         </div>
 

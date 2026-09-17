@@ -47,8 +47,24 @@ export const actions = {
       if (form.has(flag)) body[flag] = form.get(flag) === 'true';
     }
 
+    const logoEntry = form.get('logo');
+    const hasLogoFile = logoEntry instanceof File && logoEntry.size > 0;
+
+    /** @type {Record<string, unknown> | FormData} */
+    let payload;
+    if (hasLogoFile) {
+      const data = new FormData();
+      for (const [key, val] of Object.entries(body)) {
+        data.append(key, String(val));
+      }
+      data.append('logo', logoEntry);
+      payload = data;
+    } else {
+      payload = body;
+    }
+
     try {
-      await updateOrgSettings({ cookies }, body);
+      await updateOrgSettings({ cookies }, payload);
     } catch (/** @type {any} */ err) {
       if (err?.status === 403) {
         return fail(403, {

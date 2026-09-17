@@ -102,18 +102,17 @@ export async function getOrgSettings({ cookies }) {
  * server-side. Partial, only the fields in `body` are touched.
  *
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
- * @param {Record<string, unknown>} body
+ * @param {Record<string, unknown> | FormData} body
  */
 export function updateOrgSettings({ cookies }, body) {
   return apiRequest('/org/settings/', { method: 'PATCH', body }, { cookies });
 }
 
 /**
- * Vertical-pack label overrides for this org. Read via the same
- * `/api/org/settings/` endpoint the settings page uses, not a second
- * endpoint. `terminology` and `vertical` are `read_only_fields` on
- * `OrgSettingsSerializer`: the pack applier writes them server-side, so
- * there is nothing to validate or scope on the way out.
+ * Vertical-pack label overrides and tenant branding for this org. Read via the
+ * same `/api/org/settings/` endpoint the settings page uses, not a second
+ * endpoint. `terminology`, `vertical`, and `logo_url` are `read_only_fields` on
+ * `OrgSettingsSerializer`.
  *
  * Called from the `(app)` shell load on *every* page (see
  * `routes/(app)/+layout.server.js`), not just the settings page, so it must
@@ -122,11 +121,11 @@ export function updateOrgSettings({ cookies }, body) {
  * badge-count fetches already do, rather than let it propagate.
  *
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
- * @returns {Promise<{ terminology?: Record<string, string>, vertical?: string }>}
+ * @returns {Promise<{ terminology?: Record<string, string>, vertical?: string, logo_url?: string | null }>}
  */
 export async function getOrgTerminology({ cookies }) {
   const org = await apiRequest('/org/settings/', {}, { cookies });
-  return { terminology: org?.terminology, vertical: org?.vertical };
+  return { terminology: org?.terminology, vertical: org?.vertical, logo_url: org?.logo_url ?? null };
 }
 
 /**

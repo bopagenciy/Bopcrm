@@ -9,7 +9,7 @@
   import CommandPalette from '$lib/v2/components/CommandPalette.svelte';
   import { Search, Sun, Columns3, LifeBuoy, Receipt, Plus, Menu } from '@lucide/svelte';
 
-  /** @type {{ data: { counts: Record<string, number>, org: { name: string, terminology?: Record<string, string> | null }, role: string }, children: import('svelte').Snippet }} */
+  /** @type {{ data: { counts: Record<string, number>, org: { name: string, logo_url?: string | null, terminology?: Record<string, string> | null }, role: string }, children: import('svelte').Snippet }} */
   let { data, children } = $props();
 
   let paletteOpen = $state(false);
@@ -78,7 +78,15 @@
       >
         <Menu />
       </button>
-      <span class="v2-mark">{data.org.name.slice(0, 1)}</span>
+      {#if data.org.logo_url}
+        <img
+          src={data.org.logo_url}
+          alt={data.org.name}
+          style="width:24px;height:24px;border-radius:6px;object-fit:contain;flex:none;background:var(--v2-paper)"
+        />
+      {:else}
+        <span class="v2-mark">{data.org.name.slice(0, 1)}</span>
+      {/if}
       <h2>{data.org.name}</h2>
       <button
         class="v2-btn v2-btn-quiet"
