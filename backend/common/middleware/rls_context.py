@@ -173,6 +173,11 @@ class RequireOrgContext:
         "/api/portal/login/",
     ]
 
+    from django.conf import settings
+
+    if settings.DEBUG and getattr(settings, "MEDIA_URL", None):
+        EXEMPT_PATHS.append(settings.MEDIA_URL)
+
     # Paths exempt on an EXACT match only, never prefix-matched like
     # EXEMPT_PATHS above. Mirrors the exact-match pattern already used in
     # common.middleware.get_company.GetProfileAndOrg.process_request

@@ -49,6 +49,7 @@
   import Pill from '$lib/v2/components/Pill.svelte';
   import NextAction from '$lib/v2/components/NextAction.svelte';
   import { count, shortDate } from '$lib/v2/format.js';
+  import { resolveMediaUrl } from '$lib/v2/media.js';
   import { FileText, ShieldAlert, Pencil, Trash2 } from '@lucide/svelte';
   import { enhance } from '$app/forms';
 
@@ -142,10 +143,10 @@
             <dd>{org.website || '—'}</dd>
             <dt>Logo</dt>
             <dd>
-              {#if org.logo_url}
+              {#if resolveMediaUrl(org.logo_url)}
                 <div style="display:inline-flex;align-items:center">
                   <img
-                    src={org.logo_url}
+                    src={resolveMediaUrl(org.logo_url)}
                     alt={org.company_name || org.name}
                     style="max-width:140px;max-height:48px;object-fit:contain;border:1px solid var(--v2-hairline);border-radius:6px;padding:3px;background:var(--v2-paper)"
                   />

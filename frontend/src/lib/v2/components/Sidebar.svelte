@@ -24,7 +24,9 @@
     Smartphone,
     LogOut
   } from '@lucide/svelte';
-  import { t } from '$lib/terminology.js';
+  import { t as tTerm } from '$lib/terminology.js';
+  import { t as i18n } from '$lib/i18n';
+  import { resolveMediaUrl } from '$lib/v2/media.js';
 
   /**
    * One flat tree, grouped by what the person is doing rather than by which
@@ -65,58 +67,55 @@
 
   const GROUPS = [
     {
-      label: 'Sell',
+      label: 'Ventas',
+      groupKey: 'nav.group_sell',
       items: [
-        { href: '/', label: 'Today', icon: Sun, exact: true },
+        { href: '/', key: 'nav.today', label: 'Hoy', icon: Sun, exact: true },
         {
           href: '/pipeline',
+          key: 'nav.pipeline',
           label: 'Pipeline',
           icon: Columns3,
           count: 'pipeline',
           termKey: 'opportunity.plural'
         },
-        { href: '/leads', label: 'Leads', icon: Target, count: 'leads', termKey: 'lead.plural' },
-        { href: '/accounts', label: 'Accounts', icon: Building2, termKey: 'account.plural' },
-        { href: '/contacts', label: 'Contacts', icon: Users, termKey: 'contact.plural' },
-        { href: '/goals', label: 'Goals', icon: Trophy }
+        { href: '/leads', key: 'nav.leads', label: 'Prospectos', icon: Target, count: 'leads', termKey: 'lead.plural' },
+        { href: '/accounts', key: 'nav.accounts', label: 'Empresas', icon: Building2, termKey: 'account.plural' },
+        { href: '/contacts', key: 'nav.contacts', label: 'Contactos', icon: Users, termKey: 'contact.plural' },
+        { href: '/goals', key: 'nav.goals', label: 'Objetivos', icon: Trophy }
       ]
     },
     {
-      label: 'Serve',
+      label: 'Servicio',
+      groupKey: 'nav.group_serve',
       items: [
-        { href: '/tasks', label: 'Tasks', icon: CircleCheck, count: 'tasks' },
-        // Approvals and Analytics live under Tickets as section tabs. They are
-        // not separate destinations, so they do not get separate nav entries,
-        // one level of navigation, and the tab strip carries the rest.
-        { href: '/tickets', label: 'Tickets', icon: LifeBuoy, count: 'tickets' },
-        { href: '/solutions', label: 'Knowledge base', icon: BookOpen },
-        { href: '/documents', label: 'Documents', icon: FileText }
+        { href: '/tasks', key: 'nav.tasks', label: 'Tareas', icon: CircleCheck, count: 'tasks' },
+        { href: '/tickets', key: 'nav.tickets', label: 'Tickets', icon: LifeBuoy, count: 'tickets' },
+        { href: '/solutions', key: 'nav.knowledge_base', label: 'Base de conocimiento', icon: BookOpen },
+        { href: '/documents', key: 'nav.documents', label: 'Documentos', icon: FileText }
       ]
     },
     {
-      label: 'Bill',
+      label: 'Facturación',
+      groupKey: 'nav.group_bill',
       items: [
         {
           href: '/invoices',
-          label: 'Invoices',
+          key: 'nav.invoices',
+          label: 'Facturas',
           icon: Receipt,
           count: 'invoices',
           termKey: 'invoice.plural'
         },
-        { href: '/timesheet', label: 'Timesheet', icon: Clock }
+        { href: '/timesheet', key: 'nav.timesheet', label: 'Registro de tiempo', icon: Clock }
       ]
     },
     {
-      // Administration, kept apart from the work. Someone who never touches
-      // these should not read past them four times a day.
-      //
-      // Team is admin-only. A member reaches it only to be told so. Settings
-      // is not: the hub is readable by any member (it just omits admin-only
-      // counts), so it stays for everyone.
-      label: 'Run',
+      label: 'Administración',
+      groupKey: 'nav.group_run',
       items: [
-        { href: '/team', label: 'Team and access', icon: UserCog, admin: true },
-        { href: '/settings', label: 'Settings', icon: SlidersHorizontal }
+        { href: '/team', key: 'nav.team_access', label: 'Equipo y accesos', icon: UserCog, admin: true },
+        { href: '/settings', key: 'nav.settings', label: 'Configuración', icon: SlidersHorizontal }
       ]
     }
   ];
@@ -126,11 +125,16 @@
   let groups = $derived(
     GROUPS.map((group) => ({
       ...group,
+      label: group.groupKey ? $i18n(group.groupKey, {}, group.label) : group.label,
       items: group.items
         .filter((item) => role === 'ADMIN' || !item.admin)
-        .map((item) =>
-          item.termKey ? { ...item, label: t(terminology, item.termKey, item.label) } : item
-        )
+        .map((item) => {
+          let itemLabel = item.key ? $i18n(item.key, {}, item.label) : item.label;
+          if (item.termKey && terminology?.[item.termKey]) {
+            itemLabel = tTerm(terminology, item.termKey, itemLabel);
+          }
+          return { ...item, label: itemLabel };
+        })
     })).filter((group) => group.items.length > 0)
   );
 
@@ -140,14 +144,14 @@
 
 <nav class="v2-nav" aria-label="Main">
   <div class="v2-org">
-    {#if org.logo_url}
+    {#if resolveMediaUrl(org.logo_url)}
       <img
-        src={org.logo_url}
+        src={resolveMediaUrl(org.logo_url)}
         alt={org.name}
         class="v2-org-logo"
       />
     {:else}
-      <span class="v2-mark">{org.name.slice(0, 1)}</span>
+      <span class="v2-mark">{org.name?.slice(0, 1)?.toUpperCase() || '?'}</span>
     {/if}
     <b>{org.name}</b>
   </div>
@@ -163,11 +167,11 @@
       <a
         class="v2-link"
         href={resolve(asInternalPath(item.href))}
-        aria-current={isActive(item.href, item.exact) ? 'page' : undefined}
+        aria-current={isActive(item.href, 'exact' in item ? Boolean(item.exact) : false) ? 'page' : undefined}
       >
         <item.icon />
         {item.label}
-        {#if item.count && counts[item.count]}
+        {#if 'count' in item && item.count && counts[item.count]}
           <span class="v2-count">{counts[item.count]}</span>
         {/if}
       </a>
@@ -177,7 +181,7 @@
   <div class="v2-nav-foot">
     <button class="v2-link v2-nav-search" type="button" onclick={onsearch}>
       <Search />
-      Search
+      {$i18n('nav.search', {}, 'Buscar')}
       <span class="v2-count">⌘K</span>
     </button>
     <!-- Personal, not work: your own feed sits with your own profile rather
@@ -188,18 +192,18 @@
       aria-current={isActive('/notifications', false) ? 'page' : undefined}
     >
       <Bell />
-      Notifications
+      {$i18n('nav.notifications', {}, 'Notificaciones')}
       {#if counts.notifications}
         <span class="v2-count">{counts.notifications}</span>
       {/if}
     </a>
     <a class="v2-link" href={resolve('/profile')}>
       <CircleUser />
-      Your profile
+      {$i18n('nav.your_profile', {}, 'Mi perfil')}
     </a>
     <a class="v2-link" href={resolve('/help')}>
       <CircleHelp />
-      Help
+      {$i18n('nav.help', {}, 'Ayuda')}
     </a>
     <!-- The phone app for people on the hosted service. No pulsing dot. A
          download link is not something that needs you right now, and v2 keeps
@@ -211,14 +215,14 @@
       rel="noopener noreferrer"
     >
       <Smartphone />
-      Download app
+      {$i18n('nav.download_app', {}, 'Descargar app')}
     </a>
     <!-- Leaving the app. Last in the list, and a plain link. /logout is a
          server load that clears the auth cookies and redirects to /login, so a
          GET navigation is all it takes and no data-fetching component follows. -->
     <a class="v2-link" href={resolve('/logout')} data-sveltekit-reload>
       <LogOut />
-      Sign out
+      {$i18n('nav.sign_out', {}, 'Cerrar sesión')}
     </a>
   </div>
 </nav>
@@ -243,5 +247,8 @@
     object-fit: contain;
     flex: none;
     background: var(--v2-paper);
+  }
+  :global(.dark) .v2-org-logo {
+    background: #ffffff;
   }
 </style>

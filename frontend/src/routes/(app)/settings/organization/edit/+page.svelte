@@ -24,6 +24,7 @@
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import SettingsCrumb from '$lib/v2/components/SettingsCrumb.svelte';
   import NextAction from '$lib/v2/components/NextAction.svelte';
+  import { resolveMediaUrl } from '$lib/v2/media.js';
   import { CURRENCY_CODES } from '$lib/constants/filters.js';
   import { ChevronRight, TriangleAlert } from '@lucide/svelte';
 
@@ -237,10 +238,10 @@
 
       <div class="v2-field">
         <label for="f-logo">Logo</label>
-        {#if org.logo_url || logoPreview}
+        {#if logoPreview || org.logo_url}
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
             <img
-              src={logoPreview || org.logo_url}
+              src={resolveMediaUrl(logoPreview || org.logo_url)}
               alt={org.company_name || org.name || 'Organization logo'}
               style="max-width:140px;max-height:48px;object-fit:contain;border:1px solid var(--v2-hairline);border-radius:6px;padding:3px;background:var(--v2-paper)"
             />

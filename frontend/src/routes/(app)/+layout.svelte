@@ -8,6 +8,8 @@
   import Sidebar from '$lib/v2/components/Sidebar.svelte';
   import CommandPalette from '$lib/v2/components/CommandPalette.svelte';
   import { Search, Sun, Columns3, LifeBuoy, Receipt, Plus, Menu } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
+  import { resolveMediaUrl } from '$lib/v2/media.js';
 
   /** @type {{ data: { counts: Record<string, number>, org: { name: string, logo_url?: string | null, terminology?: Record<string, string> | null }, role: string }, children: import('svelte').Snippet }} */
   let { data, children } = $props();
@@ -30,12 +32,12 @@
    * The five things worth a thumb on a phone. Fewer than the sidebar on
    * purpose. A tab bar that scrolls is a menu wearing a tab bar's clothes.
    */
-  const TABS = [
-    { href: '/', label: 'Today', icon: Sun, exact: true },
-    { href: '/pipeline', label: 'Pipeline', icon: Columns3 },
-    { href: '/tickets', label: 'Tickets', icon: LifeBuoy },
-    { href: '/invoices', label: 'Invoices', icon: Receipt }
-  ];
+  const TABS = $derived([
+    { href: '/', label: $i18n('nav.today', {}, 'Hoy'), icon: Sun, exact: true },
+    { href: '/pipeline', label: $i18n('nav.pipeline', {}, 'Pipeline'), icon: Columns3 },
+    { href: '/tickets', label: $i18n('nav.tickets', {}, 'Tickets'), icon: LifeBuoy },
+    { href: '/invoices', label: $i18n('nav.invoices', {}, 'Facturas'), icon: Receipt }
+  ]);
 
   const isActive = (href, exact) =>
     exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
@@ -78,14 +80,14 @@
       >
         <Menu />
       </button>
-      {#if data.org.logo_url}
+      {#if resolveMediaUrl(data.org.logo_url)}
         <img
-          src={data.org.logo_url}
+          src={resolveMediaUrl(data.org.logo_url)}
           alt={data.org.name}
-          style="width:24px;height:24px;border-radius:6px;object-fit:contain;flex:none;background:var(--v2-paper)"
+          class="v2-mobile-logo"
         />
       {:else}
-        <span class="v2-mark">{data.org.name.slice(0, 1)}</span>
+        <span class="v2-mark">{data.org?.name?.slice(0, 1)?.toUpperCase() || '?'}</span>
       {/if}
       <h2>{data.org.name}</h2>
       <button
