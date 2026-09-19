@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
 from common.serializer import (
@@ -22,6 +23,21 @@ class LeadSerializer(serializers.ModelSerializer):
     lead_attachment = AttachmentsSerializer(read_only=True, many=True)
     teams = TeamsSerializer(read_only=True, many=True)
     lead_comments = LeadCommentSerializer(read_only=True, many=True)
+    source_app = serializers.SerializerMethodField()
+
+    def get_source_app(self, obj):
+        try:
+            from bop_integration.models import ExternalEntityMap
+
+            lead_ct = ContentType.objects.get_for_model(Lead)
+            eem = ExternalEntityMap.objects.filter(
+                org=obj.org, content_type=lead_ct, object_id=obj.id
+            ).first()
+            if eem:
+                return eem.source_app
+        except Exception:
+            pass
+        return None
 
     class Meta:
         model = Lead
@@ -76,6 +92,8 @@ class LeadSerializer(serializers.ModelSerializer):
             "kanban_order",
             # Per-org custom fields (validated via common.custom_fields)
             "custom_fields",
+            # External integration source (e.g. bopclients)
+            "source_app",
         )
         # is_sample is server-set only (see leads/models.py). Read-only here
         # even though this serializer is a read/list path today (writes go

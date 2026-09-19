@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const apiRequest = vi.fn();
 vi.mock('$lib/api-helpers.js', () => ({ apiRequest: (...a) => apiRequest(...a) }));
+vi.mock('$lib/server/v2/files.js', () => ({ attachmentHref: () => '' }));
 
-const { createLead, convertLead } = await import('$lib/server/v2/leads.js');
+const { createLead, convertLead, getLead } = await import('$lib/server/v2/leads.js');
 // Cast rather than shaping a full Cookies mock: createLead only ever calls
 // `cookies.get`, and `apiRequest` itself is mocked above, so nothing here
 // touches `getAll`/`set`/`delete`/`serialize`. Without the cast svelte-check
@@ -88,5 +89,113 @@ describe('convertLead', () => {
     });
     apiRequest.mockRejectedValue(rejection);
     await expect(convertLead(event, 'lead-1')).rejects.toBe(rejection);
+  });
+});
+
+describe('getLead provenance', () => {
+  beforeEach(() => {
+    apiRequest.mockReset();
+  });
+
+  it('extracts and normalizes Bop Clients metadata when present', async () => {
+    apiRequest.mockImplementation(async (endpoint) => {
+      if (endpoint === '/leads/lead-bop/') {
+        return {
+          lead_obj: {
+            id: 'lead-bop',
+            first_name: '',
+            last_name: '',
+            company_name: 'Bop Test Co',
+            source: 'manual',
+            source_app: 'bopclients',
+            custom_fields: {
+              bop_clients: {
+                prospect_id: '5d5cd7c6-df3d-400f-a94c-e6898d45aef9',
+                lead_score: 50,
+                priority: 'MEDIUM',
+                source: 'manual',
+                prospect_url: 'http://127.0.0.1:3000/prospects/5d5cd7c6-df3d-400f-a94c-e6898d45aef9'
+              }
+            }
+          },
+          comments: [],
+          attachments: []
+        };
+      }
+      if (endpoint.startsWith('/custom-fields/')) {
+        return { results: [] };
+      }
+      return { open_leads: { open_leads: [] } };
+    });
+
+    const result = await getLead(event, 'lead-bop');
+    expect(result.bopClients).toBeDefined();
+    expect(result.bopClients).toEqual({
+      isBopClients: true,
+      origin: 'Bop Clients',
+      prospectId: '5d5cd7c6-df3d-400f-a94c-e6898d45aef9',
+      leadScore: 50,
+      priority: 'MEDIUM',
+      prospectSource: 'manual',
+      prospectUrl: 'http://127.0.0.1:3000/prospects/5d5cd7c6-df3d-400f-a94c-e6898d45aef9'
+    });
+    // Verify lead object preserves original company_name and source
+    expect(result.lead.company_name).toBe('Bop Test Co');
+    expect(result.lead.source).toBe('manual');
+  });
+
+  it('returns bopClients: null for native CRM leads', async () => {
+    apiRequest.mockImplementation(async (endpoint) => {
+      if (endpoint === '/leads/lead-native/') {
+        return {
+          lead_obj: {
+            id: 'lead-native',
+            first_name: 'Regular',
+            last_name: 'Lead',
+            source_app: null,
+            custom_fields: null
+          },
+          comments: [],
+          attachments: []
+        };
+      }
+      if (endpoint.startsWith('/custom-fields/')) {
+        return { results: [] };
+      }
+      return { open_leads: { open_leads: [] } };
+    });
+
+    const result = await getLead(event, 'lead-native');
+    expect(result.bopClients).toBeNull();
+  });
+
+  it('rejects unverified custom_fields.bop_clients when source_app is not bopclients', async () => {
+    apiRequest.mockImplementation(async (endpoint) => {
+      if (endpoint === '/leads/lead-unverified/') {
+        return {
+          lead_obj: {
+            id: 'lead-unverified',
+            first_name: 'Fake',
+            last_name: 'Lead',
+            source_app: null,
+            custom_fields: {
+              bop_clients: {
+                prospect_id: 'injected-prospect-id',
+                lead_score: 99
+              }
+            }
+          },
+          comments: [],
+          attachments: []
+        };
+      }
+      if (endpoint.startsWith('/custom-fields/')) {
+        return { results: [] };
+      }
+      return { open_leads: { open_leads: [] } };
+    });
+
+    const result = await getLead(event, 'lead-unverified');
+    expect(result.bopClients).toBeNull();
   });
 });

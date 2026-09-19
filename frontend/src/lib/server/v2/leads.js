@@ -127,11 +127,12 @@ function lastTouch(row) {
  */
 export async function getLead({ cookies }, id) {
   const response = await fetchDetail(cookies, id);
+  const rawLead = response.lead_obj;
   // `description` is a real field the edit form owns, but `toRow` leaves it out
   // because the list has no use for it. The detail page does. It is the one
   // place a lead's free text is worth reading, so it is attached here rather
   // than widening every list row to carry a paragraph nobody scans.
-  const lead = { ...toRow(response.lead_obj), description: response.lead_obj.description ?? '' };
+  const lead = { ...toRow(rawLead), description: rawLead.description ?? '' };
 
   // Per-org custom fields. A vertical pack's whole promise is the fields it
   // sets up for the industry, and they are stored on the lead, so the detail
@@ -139,11 +140,51 @@ export async function getLead({ cookies }, id) {
   // Settings → Custom fields.
   const definitions = await leadFieldDefinitions(cookies);
 
+  // Bop Clients integration provenance metadata
+  let bopClients = null;
+  const bopData = rawLead.custom_fields?.bop_clients;
+  if (rawLead.source_app === 'bopclients') {
+    let leadScore = null;
+    if (bopData && typeof bopData.lead_score === 'number' && Number.isFinite(bopData.lead_score)) {
+      if (bopData.lead_score >= 0 && bopData.lead_score <= 100) {
+        leadScore = bopData.lead_score;
+      }
+    } else if (bopData && typeof bopData.lead_score === 'string' && bopData.lead_score.trim() !== '') {
+      const parsed = Number(bopData.lead_score);
+      if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
+        leadScore = parsed;
+      }
+    }
+
+    let prospectUrl = null;
+    if (bopData?.prospect_url && typeof bopData.prospect_url === 'string') {
+      try {
+        const parsed = new URL(bopData.prospect_url);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+          prospectUrl = bopData.prospect_url;
+        }
+      } catch {
+        // invalid URL format - reject safely
+      }
+    }
+
+    bopClients = {
+      isBopClients: true,
+      origin: 'Bop Clients',
+      prospectId: bopData?.prospect_id ? String(bopData.prospect_id) : null,
+      leadScore,
+      priority: bopData?.priority ? String(bopData.priority) : null,
+      prospectSource: bopData?.source ? String(bopData.source) : null,
+      prospectUrl
+    };
+  }
+
   return {
     lead,
-    customFields: pairForDisplay(definitions, response.lead_obj.custom_fields),
+    customFields: pairForDisplay(definitions, rawLead.custom_fields),
     activity: buildActivity(response),
-    duplicates: await findDuplicates(cookies, lead)
+    duplicates: await findDuplicates(cookies, lead),
+    bopClients
   };
 }
 

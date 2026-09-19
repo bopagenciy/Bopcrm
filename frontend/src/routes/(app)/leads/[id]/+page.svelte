@@ -25,6 +25,7 @@
   import { money, relativeDays, daysSince, shortDate } from '$lib/v2/format.js';
   import { LEAD_STATUS_TONE, LEAD_STATUS_LABEL, industryLabel } from '$lib/v2/enums.js';
   import { t } from '$lib/terminology.js';
+  import { t as i18n } from '$lib/i18n';
   import { enhance } from '$app/forms';
   import {
     ChevronRight,
@@ -34,16 +35,21 @@
     Paperclip,
     MessageSquare,
     Sparkles,
-    X
+    X,
+    ExternalLink
   } from '@lucide/svelte';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
 
-  let { lead, activity, duplicates, customFields } = $derived(data);
+  let { lead, activity, duplicates, customFields, bopClients } = $derived(data);
   let isConverted = $derived(lead.status === 'converted');
-  let firstName = $derived(lead.first_name || 'this lead');
-  let fullName = $derived(`${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || 'Lead');
+  let contactName = $derived(`${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim());
+  let displayTitle = $derived(
+    contactName || (lead.company_name ?? '').trim() || $i18n('integration.fallback_lead_title', {}, 'Lead')
+  );
+  let firstName = $derived(lead.first_name || displayTitle);
+  let fullName = $derived(displayTitle);
 
   let note = $state('');
   let saving = $state(false);
@@ -170,9 +176,37 @@
     if (/^[a-z][a-z0-9+.-]*:/i.test(u)) return null;
     return `https://${u}`;
   }
+
+  /**
+   * Map Bop Clients priority to Pill tone.
+   * @param {string|null} priority
+   */
+  function priorityTone(priority) {
+    if (!priority) return 'slate';
+    const p = priority.toLowerCase();
+    if (p === 'urgent') return 'rust';
+    if (p === 'high') return 'clay';
+    if (p === 'medium') return 'ink';
+    if (p === 'low') return 'moss';
+    return 'slate';
+  }
+
+  /**
+   * Map Bop Clients priority to localized label.
+   * @param {string|null} priority
+   */
+  function priorityLabel(priority) {
+    if (!priority) return '—';
+    const p = priority.toLowerCase();
+    if (p === 'urgent') return $i18n('integration.priority_urgent', {}, 'Urgent');
+    if (p === 'high') return $i18n('integration.priority_high', {}, 'High');
+    if (p === 'medium') return $i18n('integration.priority_medium', {}, 'Medium');
+    if (p === 'low') return $i18n('integration.priority_low', {}, 'Low');
+    return priority;
+  }
 </script>
 
-<PageHeader title="{lead.first_name} {lead.last_name}" record>
+<PageHeader title={displayTitle} record>
   {#snippet leading()}
     <Avatar name={fullName} size={42} />
   {/snippet}
@@ -468,6 +502,60 @@
         {lead.opportunity_amount ? money(lead.opportunity_amount, lead.currency) : '—'}
       </dd>
     </dl>
+
+    {#if bopClients}
+      <div class="v2-label v2-rail-head" style="margin-top:16px">
+        {$i18n('integration.origin_title', {}, 'Integration Origin')}
+      </div>
+      <dl class="v2-kv">
+        <dt>{$i18n('integration.origin_label', {}, 'Origin')}</dt>
+        <dd style="font-size:12px">
+          <Pill tone="ink">{bopClients.origin || 'Bop Clients'}</Pill>
+        </dd>
+
+        {#if bopClients.leadScore !== null}
+          <dt>{$i18n('integration.lead_score', {}, 'Lead Score')}</dt>
+          <dd class="v2-num" style="font-size:12px">
+            <strong>{bopClients.leadScore}</strong> / 100
+          </dd>
+        {/if}
+
+        {#if bopClients.priority}
+          <dt>{$i18n('integration.priority', {}, 'Priority')}</dt>
+          <dd style="font-size:12px">
+            <Pill tone={priorityTone(bopClients.priority)}>{priorityLabel(bopClients.priority)}</Pill>
+          </dd>
+        {/if}
+
+        {#if bopClients.prospectSource}
+          <dt>{$i18n('integration.prospect_source', {}, 'Prospect Source')}</dt>
+          <dd style="font-size:12px">{bopClients.prospectSource}</dd>
+        {/if}
+
+        {#if bopClients.prospectId}
+          <dt>{$i18n('integration.original_prospect', {}, 'Prospect ID')}</dt>
+          <dd style="font-size:12px">
+            <code style="font-family:monospace;font-size:11px;word-break:break-all">{bopClients.prospectId}</code>
+          </dd>
+        {/if}
+
+        {#if bopClients.prospectUrl}
+          <dt></dt>
+          <dd style="margin-top:6px">
+            <a
+              class="v2-btn v2-btn-sm"
+              href={bopClients.prospectUrl}
+              target="_blank"
+              rel="external noreferrer noopener"
+              style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:4px 8px;text-decoration:none"
+            >
+              <ExternalLink size={12} />
+              {$i18n('integration.open_in_bop_clients', {}, 'Open in Bop Clients')}
+            </a>
+          </dd>
+        {/if}
+      </dl>
+    {/if}
 
     <div class="v2-label v2-rail-head">Timeline</div>
     <dl class="v2-kv">
