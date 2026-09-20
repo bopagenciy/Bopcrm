@@ -33,12 +33,12 @@ export const STAGES = [
 export const OPEN_STAGES = STAGES.slice(0, 4);
 
 export const STAGE_LABEL = {
-  PROSPECTING: 'Prospecting',
-  QUALIFICATION: 'Qualification',
-  PROPOSAL: 'Proposal',
-  NEGOTIATION: 'Negotiation',
-  CLOSED_WON: 'Closed Won',
-  CLOSED_LOST: 'Closed Lost'
+  PROSPECTING: 'Prospectando',
+  QUALIFICATION: 'Calificación',
+  PROPOSAL: 'Propuesta',
+  NEGOTIATION: 'Negociación',
+  CLOSED_WON: 'Cerrado ganado',
+  CLOSED_LOST: 'Cerrado perdido'
 };
 
 export const STAGE_TONE = {
@@ -51,16 +51,16 @@ export const STAGE_TONE = {
 };
 
 export const OPPORTUNITY_TYPE_LABEL = {
-  NEW_BUSINESS: 'New Business',
-  EXISTING_BUSINESS: 'Existing Business',
-  RENEWAL: 'Renewal',
-  UPSELL: 'Upsell',
-  CROSS_SELL: 'Cross-sell'
+  NEW_BUSINESS: 'Nuevo negocio',
+  EXISTING_BUSINESS: 'Negocio existente',
+  RENEWAL: 'Renovación',
+  UPSELL: 'Venta adicional',
+  CROSS_SELL: 'Venta cruzada'
 };
 
 /** Opportunity.aging_status. The API returns these three strings verbatim. */
 export const AGING_TONE = { green: 'slate', yellow: 'clay', red: 'rust' };
-export const AGING_LABEL = { green: 'On pace', yellow: 'Past expected', red: 'Stalled' };
+export const AGING_LABEL = { green: 'Al día', yellow: 'Atrasado', red: 'Estancado' };
 
 export const LEAD_STATUS_TONE = {
   assigned: 'slate',
@@ -82,11 +82,11 @@ export const LEAD_STATUS_TONE = {
 export const LEAD_STATUSES = ['assigned', 'in process', 'converted', 'recycled', 'closed'];
 
 export const LEAD_STATUS_LABEL = {
-  assigned: 'Assigned',
-  'in process': 'In process',
-  converted: 'Converted',
-  recycled: 'Recycled',
-  closed: 'Closed'
+  assigned: 'Asignado',
+  'in process': 'En proceso',
+  converted: 'Convertido',
+  recycled: 'Reciclado',
+  closed: 'Cerrado'
 };
 
 /**
@@ -187,8 +187,19 @@ export const INVOICE_STATUS_TONE = {
   Cancelled: 'slate'
 };
 
+export const INVOICE_STATUS_LABEL = {
+  Draft: 'Borrador',
+  Sent: 'Enviada',
+  Viewed: 'Vista',
+  Paid: 'Pagada',
+  Partially_Paid: 'Parcialmente pagada',
+  Overdue: 'Vencida',
+  Pending: 'Pendiente',
+  Cancelled: 'Cancelada'
+};
+
 /** INVOICE_STATUS uses an underscore on the wire; never show it to a person. */
-export const invoiceStatusLabel = (s) => String(s ?? '').replace(/_/g, ' ');
+export const invoiceStatusLabel = (s) => INVOICE_STATUS_LABEL[s] ?? String(s ?? '').replace(/_/g, ' ');
 
 /**
  * tasks.Task.STATUS_CHOICES / PRIORITY_CHOICES.
@@ -212,7 +223,7 @@ export const TASK_PRIORITY_TONE = { Low: 'slate', Medium: 'slate', High: 'clay' 
  * customers could not see looked live. Both are surfaced here.
  */
 export const SOLUTION_STATUS = ['draft', 'reviewed', 'approved'];
-export const SOLUTION_STATUS_LABEL = { draft: 'Draft', reviewed: 'Reviewed', approved: 'Approved' };
+export const SOLUTION_STATUS_LABEL = { draft: 'Borrador', reviewed: 'Revisado', approved: 'Aprobado' };
 export const SOLUTION_STATUS_TONE = { draft: 'slate', reviewed: 'clay', approved: 'moss' };
 
 /**
@@ -223,32 +234,32 @@ export const SOLUTION_STATUS_TONE = { draft: 'slate', reviewed: 'clay', approved
  * tell you behind on what. They are pace judgements, not percentages.
  */
 export const GOAL_TYPE_LABEL = {
-  REVENUE: 'Revenue',
-  DEALS_CLOSED: 'Deals closed',
-  ACTIVITIES: 'Activities'
+  REVENUE: 'Ingresos',
+  DEALS_CLOSED: 'Negocios cerrados',
+  ACTIVITIES: 'Actividades'
 };
 
 /** Opportunity types, for the per-goal weighting on a revenue or deals goal. */
 export const DEAL_TYPE_LABEL = {
-  NEW_BUSINESS: 'New business',
-  EXISTING_BUSINESS: 'Existing business',
-  RENEWAL: 'Renewal',
-  UPSELL: 'Upsell',
-  CROSS_SELL: 'Cross-sell'
+  NEW_BUSINESS: 'Nuevo negocio',
+  EXISTING_BUSINESS: 'Negocio existente',
+  RENEWAL: 'Renovación',
+  UPSELL: 'Venta adicional',
+  CROSS_SELL: 'Venta cruzada'
 };
 
 export const PERIOD_TYPE_LABEL = {
-  MONTHLY: 'Monthly',
-  QUARTERLY: 'Quarterly',
-  YEARLY: 'Yearly',
-  CUSTOM: 'Custom'
+  MONTHLY: 'Mensual',
+  QUARTERLY: 'Trimestral',
+  YEARLY: 'Anual',
+  CUSTOM: 'Personalizado'
 };
 
 export const GOAL_STATUS_LABEL = {
-  completed: 'Target met',
-  on_track: 'On pace',
-  at_risk: 'Slipping',
-  behind: 'Behind pace'
+  completed: 'Meta alcanzada',
+  on_track: 'Al día',
+  at_risk: 'En riesgo',
+  behind: 'Atrasado'
 };
 
 export const GOAL_STATUS_TONE = {
@@ -260,10 +271,10 @@ export const GOAL_STATUS_TONE = {
 
 /** cases.approvals: APPROVAL_STATE_CHOICES. */
 export const APPROVAL_STATE_LABEL = {
-  pending: 'Waiting',
-  approved: 'Approved',
-  rejected: 'Rejected',
-  cancelled: 'Withdrawn'
+  pending: 'Pendiente',
+  approved: 'Aprobado',
+  rejected: 'Rechazado',
+  cancelled: 'Retirado'
 };
 
 export const APPROVAL_STATE_TONE = {

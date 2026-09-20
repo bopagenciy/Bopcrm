@@ -33,6 +33,7 @@
   import { X, Plus, ChevronDown } from '@lucide/svelte';
   import { FILTERS, activeChips, activePresetKey, withParams } from '$lib/v2/filters.js';
   import { invoiceStatusLabel } from '$lib/v2/enums.js';
+  import { t as i18n } from '$lib/i18n';
 
   let {
     page,
@@ -75,7 +76,7 @@
   // it, filtering by a colleague would light up "Mine".
   let activeKey = $derived(activePresetKey(page, url, meId));
   let activeLabel = $derived(
-    descriptor.presets.find((/** @type {any} */ p) => p.key === activeKey)?.label ?? 'All'
+    descriptor.presets.find((/** @type {any} */ p) => p.key === activeKey)?.label ?? $i18n('common.all', {}, 'Todos')
   );
 
   /**
@@ -152,7 +153,7 @@
     <details class="v2-filter-menu">
       <summary class="v2-chip v2-chip-add">
         <Plus size={12} />
-        Filter
+        {$i18n('common.filter', {}, 'Filtrar')}
       </summary>
       <form class="v2-menu v2-filter-form" method="GET">
         <!-- Params the form does not own (the preset's own, plus paging) would
@@ -210,12 +211,12 @@
               </span>
             {:else if field.type === 'boolean'}
               <select class="v2-input" name={field.key}>
-                <option value="">Any</option>
+                <option value="">{$i18n('common.any', {}, 'Cualquiera')}</option>
                 <option value="true" selected={url.searchParams.get(field.key) === 'true'}
-                  >Yes</option
+                  >{$i18n('common.yes', {}, 'Sí')}</option
                 >
                 <option value="false" selected={url.searchParams.get(field.key) === 'false'}
-                  >No</option
+                  >{$i18n('common.no', {}, 'No')}</option
                 >
               </select>
             {:else if field.type === 'text'}
@@ -224,11 +225,11 @@
                 type="text"
                 name={field.key}
                 value={url.searchParams.get(field.key) ?? ''}
-                placeholder="Any"
+                placeholder={$i18n('common.any', {}, 'Cualquiera')}
               />
             {:else}
               <select class="v2-input" name={field.key}>
-                <option value="">Any</option>
+                <option value="">{$i18n('common.any', {}, 'Cualquiera')}</option>
                 {#each optionsFor(field) as option (option.id)}
                   <option
                     value={option.id}
@@ -243,8 +244,8 @@
         {/each}
 
         <div class="v2-filter-actions">
-          <button class="v2-btn v2-btn-primary v2-btn-sm" type="submit">Apply</button>
-          <a class="v2-btn v2-btn-sm" href={resolve(asInternalPath(url.pathname))}>Clear all</a>
+          <button class="v2-btn v2-btn-primary v2-btn-sm" type="submit">{$i18n('common.apply', {}, 'Aplicar')}</button>
+          <a class="v2-btn v2-btn-sm" href={resolve(asInternalPath(url.pathname))}>{$i18n('common.clear_all', {}, 'Limpiar todo')}</a>
         </div>
       </form>
     </details>

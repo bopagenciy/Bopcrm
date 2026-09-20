@@ -4,6 +4,7 @@
   import Pill from '$lib/v2/components/Pill.svelte';
   import { money, count } from '$lib/v2/format.js';
   import { Target } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -37,23 +38,14 @@
   const plural = (/** @type {number} */ n, /** @type {string} */ one, /** @type {string} */ many) =>
     `${n} ${n === 1 ? one : many}`;
 
-  // Built as one string rather than conditional markup: the "quiet deals"
-  // clause only makes sense when there are any, and the numbers are often zero
-  // in a real org, so the copy adapts instead of reading "0 deals … have gone
-  // quiet."
-  //
-  // It used to close with "Those are first", which was generated from a count
-  // rather than from the sort it described. Quiet deals rank below overdue
-  // invoices, so on the seeded org all seven of them fell off the end of the
-  // list the sentence had just promised to lead with.
   let subText = $derived(
     summary.count === 0
-      ? 'Nothing needs you right now: you’re all clear for today.'
+      ? $i18n('today.nothing_needs_you', {}, 'No tienes nada pendiente en este momento.')
       : summary.quiet_deals === 0
-        ? `${plural(summary.count, 'thing wants', 'things want')} you today.`
-        : `${plural(summary.count, 'thing wants', 'things want')} you today. ` +
-          `${plural(summary.quiet_deals, 'deal', 'deals')} worth ${money(summary.quiet_value, data.org.currency)} ` +
-          `${summary.quiet_deals === 1 ? 'has' : 'have'} gone quiet.`
+        ? `${plural(summary.count, 'asunto requiere', 'asuntos requieren')} tu atención hoy.`
+        : `${plural(summary.count, 'asunto requiere', 'asuntos requieren')} tu atención hoy. ` +
+          `${plural(summary.quiet_deals, 'negocio', 'negocios')} por valor de ${money(summary.quiet_value, data.org.currency)} ` +
+          `${summary.quiet_deals === 1 ? 'está' : 'están'} sin movimiento.`
   );
 
   // The queue shows the most urgent 8. Everything past that is real work with
@@ -62,7 +54,7 @@
   let hidden = $derived(Math.max(0, summary.count - summary.shown));
 </script>
 
-<PageHeader title="Today">
+<PageHeader title={$i18n('today.title', {}, 'Hoy')}>
   {#snippet sub()}{subText}{/snippet}
 </PageHeader>
 
@@ -96,11 +88,11 @@
     {/each}
 
     {#if queue.length && hidden === 0}
-      <p class="v2-sub" style="margin:15px 0 21px;font-size:12.5px">That’s everything due today.</p>
+      <p class="v2-sub" style="margin:15px 0 21px;font-size:12.5px">Todo lo pendiente para hoy está aquí.</p>
     {:else if queue.length}
       <p class="v2-sub" style="margin:15px 0 21px;font-size:12.5px">
         <span class="v2-num">{hidden}</span>
-        {hidden === 1 ? 'more is' : 'more are'} waiting:
+        {hidden === 1 ? 'más en espera:' : 'más en espera:'}
         {#each summary.sources as source, i (source.href)}<a
             href={resolve(source.href)}
             style="color:inherit">{source.count} {source.label}</a
@@ -109,9 +101,9 @@
     {:else}
       <div class="v2-card" style="margin-bottom:8px">
         <div class="v2-pad" style="padding:20px;text-align:center">
-          <div style="font-weight:640;letter-spacing:-0.012em">Inbox zero for today</div>
+          <div style="font-weight:640;letter-spacing:-0.012em">{$i18n('today.inbox_zero', {}, 'Todo al día por hoy')}</div>
           <div class="v2-sub" style="margin-top:3px">
-            No overdue tickets, invoices, quiet deals or tasks. Anything coming up is below.
+            {$i18n('today.clear_summary', {}, 'No tienes tickets vencidos, facturas pendientes, negocios sin movimiento ni tareas atrasadas. Lo próximo aparecerá aquí.')}
           </div>
         </div>
       </div>
@@ -129,7 +121,7 @@
     {#if goals.length}
       <div class="v2-label" style="margin:6px 0 9px">
         <Target size={12} style="vertical-align:-1px;margin-right:4px" />
-        Where you stand
+        {$i18n('today.focus_title', {}, 'Enfoque de hoy')}
       </div>
       <div class="goals">
         {#each goals as g (g.id)}

@@ -1,20 +1,10 @@
 <script>
   import { resolve } from '$app/paths';
-  /**
-   * The way back up from a settings page.
-   *
-   * Settings has no tab strip (see the note in `tabs.js`): you arrive at one
-   * page, change one thing, and leave. What that needs is a way back to the
-   * index, not twelve siblings competing for the same row.
-   *
-   * Rendered inside PageHeader's `crumb` snippet so it sits above the title in
-   * the same place a record's account name does. One convention for "the
-   * thing this belongs to", whether that thing is an account or a section.
-   */
   import { ChevronLeft } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 </script>
 
-<a href={resolve('/settings')}><ChevronLeft size={13} />Settings</a>
+<a href={resolve('/settings')}><ChevronLeft size={13} />{$i18n('settings.title', {}, 'Configuración')}</a>
 
 <style>
   a {

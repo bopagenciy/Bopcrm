@@ -30,33 +30,33 @@
 
   const ACTIONS = [
     {
-      kind: 'Actions',
+      kind: 'Acciones',
       id: 'act-deal',
-      title: 'New deal',
+      title: 'Nuevo negocio',
       meta: 'Pipeline',
       href: '/pipeline/new',
       icon: Plus
     },
     {
-      kind: 'Actions',
+      kind: 'Acciones',
       id: 'act-today',
-      title: 'Go to Today',
+      title: 'Ir a Hoy',
       meta: '',
       href: '/',
       icon: Columns3
     },
     {
-      kind: 'Actions',
+      kind: 'Acciones',
       id: 'act-tasks',
-      title: 'Go to Tasks',
+      title: 'Ir a Tareas',
       meta: '',
       href: '/tasks',
       icon: Columns3
     },
     {
-      kind: 'Actions',
+      kind: 'Acciones',
       id: 'act-invoices',
-      title: 'Go to Invoices',
+      title: 'Ir a Facturas',
       meta: '',
       href: '/invoices',
       icon: Receipt

@@ -49,108 +49,109 @@ import {
 /** @typedef {{ presets: Preset[], fields: Field[] }} Descriptor */
 
 /** @type {Record<string, Descriptor>} */
+/** @type {Record<string, Descriptor>} */
 export const FILTERS = {
   tickets: {
     presets: [
-      { key: 'open', label: 'Open, newest first', params: {} },
-      { key: 'mine', label: 'Mine', params: { assigned_to: '@me' } },
-      { key: 'breaching', label: 'Breaching SLA', params: { sla_breached: 'true' } },
-      { key: 'all', label: 'Everything', params: { all: '1' } }
+      { key: 'open', label: 'Abiertos, recientes primero', params: {} },
+      { key: 'mine', label: 'Mis tickets', params: { assigned_to: '@me' } },
+      { key: 'breaching', label: 'SLA en riesgo', params: { sla_breached: 'true' } },
+      { key: 'all', label: 'Todos', params: { all: '1' } }
     ],
     fields: [
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
-      { key: 'priority', label: 'Priority', type: 'select', options: CASE_PRIORITIES },
-      { key: 'case_type', label: 'Type', type: 'select', options: CASE_TYPES },
-      { key: 'sla_breached', label: 'Breaching SLA', type: 'boolean' },
-      { key: 'tags', label: 'Tag', type: 'tag' }
+      { key: 'assigned_to', label: 'Propietario', type: 'person' },
+      { key: 'priority', label: 'Prioridad', type: 'select', options: CASE_PRIORITIES },
+      { key: 'case_type', label: 'Tipo', type: 'select', options: CASE_TYPES },
+      { key: 'sla_breached', label: 'SLA en riesgo', type: 'boolean' },
+      { key: 'tags', label: 'Etiqueta', type: 'tag' }
     ]
   },
 
   leads: {
     presets: [
-      { key: 'open', label: 'Open leads', params: {} },
-      { key: 'mine', label: 'Mine', params: { assigned_to: '@me' } }
+      { key: 'open', label: 'Prospectos abiertos', params: {} },
+      { key: 'mine', label: 'Mis prospectos', params: { assigned_to: '@me' } }
     ],
     fields: [
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
+      { key: 'assigned_to', label: 'Propietario', type: 'person' },
       {
         key: 'status',
-        label: 'Status',
+        label: 'Estado',
         type: 'select',
         options: LEAD_LIST_STATUSES,
         labelFor: (v) => LEAD_STATUS_LABEL[v] ?? v
       },
       {
         key: 'source',
-        label: 'Source',
+        label: 'Fuente',
         type: 'select',
         options: LEAD_SOURCES,
         labelFor: (v) => LEAD_SOURCE_LABEL[v] ?? v
       },
-      { key: 'tags', label: 'Tag', type: 'tag' }
+      { key: 'tags', label: 'Etiqueta', type: 'tag' }
     ]
   },
 
   contacts: {
     presets: [
-      { key: 'mine', label: 'Mine', params: { assigned_to: '@me' } },
-      { key: 'inactive', label: 'Including inactive', params: { inactive: '1' } },
-      { key: 'active', label: 'Active contacts', params: {} }
+      { key: 'mine', label: 'Mis contactos', params: { assigned_to: '@me' } },
+      { key: 'inactive', label: 'Incluyendo inactivos', params: { inactive: '1' } },
+      { key: 'active', label: 'Contactos activos', params: {} }
     ],
     fields: [
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
-      { key: 'tags', label: 'Tag', type: 'tag' },
-      { key: 'city', label: 'City', type: 'text' }
+      { key: 'assigned_to', label: 'Propietario', type: 'person' },
+      { key: 'tags', label: 'Etiqueta', type: 'tag' },
+      { key: 'city', label: 'Ciudad', type: 'text' }
     ]
   },
 
   pipeline: {
     presets: [
-      { key: 'open', label: 'Open deals', params: { open: 'true' } },
-      { key: 'mine', label: 'Mine', params: { assigned_to: '@me' } },
-      { key: 'stalled', label: 'Stalled', params: { rotten: 'true' } },
-      { key: 'all', label: 'All deals', params: {} }
+      { key: 'open', label: 'Negocios abiertos', params: { open: 'true' } },
+      { key: 'mine', label: 'Mis negocios', params: { assigned_to: '@me' } },
+      { key: 'stalled', label: 'Estancados', params: { rotten: 'true' } },
+      { key: 'all', label: 'Todos los negocios', params: {} }
     ],
     fields: [
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
+      { key: 'assigned_to', label: 'Propietario', type: 'person' },
       {
         key: 'stage',
-        label: 'Stage',
+        label: 'Etapa',
         type: 'select',
         options: STAGES,
         labelFor: (v) => STAGE_LABEL[v] ?? v
       },
       {
         key: 'lead_source',
-        label: 'Source',
+        label: 'Fuente',
         type: 'select',
         options: LEAD_SOURCES,
         labelFor: (v) => LEAD_SOURCE_LABEL[v] ?? v
       },
       {
         key: 'amount',
-        label: 'Value',
+        label: 'Valor',
         type: 'number-range',
         gteKey: 'amount__gte',
         lteKey: 'amount__lte'
       },
-      { key: 'tags', label: 'Tag', type: 'tag' }
+      { key: 'tags', label: 'Etiqueta', type: 'tag' }
     ]
   },
 
   tasks: {
     presets: [
-      { key: 'open', label: 'Open tasks', params: {} },
-      { key: 'mine', label: 'My tasks', params: { assigned_to: '@me' } },
-      { key: 'all', label: 'All tasks', params: { all: '1' } }
+      { key: 'open', label: 'Tareas abiertas', params: {} },
+      { key: 'mine', label: 'Mis tareas', params: { assigned_to: '@me' } },
+      { key: 'all', label: 'Todas las tareas', params: { all: '1' } }
     ],
     fields: [
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
-      { key: 'priority', label: 'Priority', type: 'select', options: TASK_PRIORITY },
-      { key: 'status', label: 'Status', type: 'select', options: TASK_STATUS },
+      { key: 'assigned_to', label: 'Propietario', type: 'person' },
+      { key: 'priority', label: 'Prioridad', type: 'select', options: TASK_PRIORITY },
+      { key: 'status', label: 'Estado', type: 'select', options: TASK_STATUS },
       {
         key: 'due_date',
-        label: 'Due date',
+        label: 'Fecha de vencimiento',
         type: 'date-range',
         gteKey: 'due_date__gte',
         lteKey: 'due_date__lte'
@@ -160,39 +161,39 @@ export const FILTERS = {
 
   accounts: {
     presets: [
-      { key: 'mine', label: 'Mine', params: { assigned_to: '@me' } },
-      { key: 'all', label: 'All accounts', params: {} }
+      { key: 'mine', label: 'Mis empresas', params: { assigned_to: '@me' } },
+      { key: 'all', label: 'Todas las empresas', params: {} }
     ],
     fields: [
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
-      { key: 'tags', label: 'Tag', type: 'tag' },
+      { key: 'assigned_to', label: 'Propietario', type: 'person' },
+      { key: 'tags', label: 'Etiqueta', type: 'tag' },
       {
         key: 'industry',
-        label: 'Industry',
+        label: 'Industria',
         type: 'select',
         options: INDUSTRIES,
         labelFor: industryLabel
       },
-      { key: 'city', label: 'City', type: 'text' }
+      { key: 'city', label: 'Ciudad', type: 'text' }
     ]
   },
 
   invoices: {
     presets: [
-      { key: 'overdue', label: 'Overdue', params: { status: 'Overdue' } },
-      { key: 'draft', label: 'Draft', params: { status: 'Draft' } },
-      { key: 'all', label: 'All invoices', params: {} }
+      { key: 'overdue', label: 'Vencidas', params: { status: 'Overdue' } },
+      { key: 'draft', label: 'Borrador', params: { status: 'Draft' } },
+      { key: 'all', label: 'Todas las facturas', params: {} }
     ],
     fields: [
       {
         key: 'status',
-        label: 'Status',
+        label: 'Estado',
         type: 'select',
         options: INVOICE_STATUSES,
         labelFor: invoiceStatusLabel
       },
-      { key: 'account', label: 'Account', type: 'account' },
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
+      { key: 'account', label: 'Empresa', type: 'account' },
+      { key: 'assigned_to', label: 'Propietario', type: 'person' },
       // Invoices uses a SINGLE underscore (`due_date_gte`/`due_date_lte`,
       // `backend/invoices/api_views.py:149-152`). Every other date-range field
       // in this file uses a DOUBLE underscore. Never build this key by

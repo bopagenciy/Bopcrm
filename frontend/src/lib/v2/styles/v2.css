@@ -1097,11 +1097,17 @@ a.v2-setting:hover {
   text-decoration: none;
 }
 .v2-auth-brand img {
-  width: 27px;
-  height: 27px;
-  border-radius: 7px;
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
   display: block;
   flex: none;
+}
+.dark .v2-auth-brand img {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 12px;
+  padding: 8px 16px;
 }
 .v2-auth-brand b {
   font-size: 17px;
@@ -1472,6 +1478,17 @@ a.v2-setting:hover {
   font-size: 19px;
   font-weight: 640;
   letter-spacing: -0.02em;
+}
+.v2-mobile-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: contain;
+  flex: none;
+  background: var(--v2-paper);
+}
+.dark .v2-mobile-logo {
+  background: #ffffff;
 }
 .v2-tabbar {
   height: 52px;

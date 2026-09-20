@@ -6,6 +6,7 @@
   import { afterNavigate, goto } from '$app/navigation';
 
   import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+  import { t } from '$lib/i18n';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import * as Collapsible from '$lib/components/ui/collapsible/index.js';
   import { Avatar, AvatarFallback } from '$lib/components/ui/avatar/index.js';
@@ -173,22 +174,22 @@
   });
 
   // Five-section IA per spec §4
-  const workspaceItems = [
-    { href: '/', label: 'Home', icon: Home, type: 'link', preload: 'off', count: undefined },
+  const workspaceItems = $derived([
+    { href: '/', label: $t('nav.today', {}, 'Hoy'), icon: Home, type: 'link', preload: 'off', count: undefined },
     {
       href: '/leads',
-      label: 'Pipeline',
+      label: $t('nav.pipeline', {}, 'Pipeline'),
       icon: Activity,
       type: 'link',
       preload: 'off',
       count: undefined
     }
-  ];
+  ]);
 
-  const recordsItems = [
+  const recordsItems = $derived([
     {
       href: '/leads',
-      label: 'Leads',
+      label: $t('nav.leads', {}, 'Prospectos'),
       icon: Target,
       type: 'link',
       preload: 'off',
@@ -196,7 +197,7 @@
     },
     {
       href: '/contacts',
-      label: 'Contacts',
+      label: $t('nav.contacts', {}, 'Contactos'),
       icon: Users,
       type: 'link',
       preload: 'off',
@@ -204,7 +205,7 @@
     },
     {
       href: '/accounts',
-      label: 'Accounts',
+      label: $t('nav.accounts', {}, 'Empresas'),
       icon: Building,
       type: 'link',
       preload: 'off',
@@ -218,40 +219,40 @@
       preload: 'off',
       count: undefined
     }
-  ];
+  ]);
 
-  const workItems = [
+  const workItems = $derived([
     {
       key: 'tickets',
-      label: 'Tickets',
+      label: $t('nav.tickets', {}, 'Tickets'),
       icon: Briefcase,
       type: 'dropdown',
       count: undefined,
       children: [
         {
           href: '/tickets',
-          label: 'All tickets',
+          label: 'Todos los tickets',
           icon: Briefcase,
           preload: 'off',
           count: undefined
         },
         {
           href: '/tickets/approvals',
-          label: 'Approvals',
+          label: 'Aprobaciones',
           icon: ShieldCheck,
           preload: 'off',
           count: undefined
         },
         {
           href: '/tickets/analytics',
-          label: 'Analytics',
+          label: 'Analíticas',
           icon: BarChart3,
           preload: 'off',
           count: undefined
         },
         {
           href: '/solutions',
-          label: 'Knowledge base',
+          label: $t('nav.knowledge_base', {}, 'Base de conocimiento'),
           icon: BookOpen,
           preload: 'off',
           count: undefined
@@ -260,7 +261,7 @@
     },
     {
       href: '/tasks',
-      label: 'Tasks',
+      label: $t('nav.tasks', {}, 'Tareas'),
       icon: CheckSquare,
       type: 'link',
       preload: 'off',
@@ -268,88 +269,88 @@
     },
     {
       href: '/timesheet',
-      label: 'Timesheet',
+      label: $t('nav.timesheet', {}, 'Registro de tiempo'),
       icon: Clock,
       type: 'link',
       preload: 'off',
       count: undefined
     },
-    { href: '/goals', label: 'Goals', icon: Trophy, type: 'link', preload: 'off', count: undefined }
-  ];
+    { href: '/goals', label: $t('nav.goals', {}, 'Objetivos'), icon: Trophy, type: 'link', preload: 'off', count: undefined }
+  ]);
 
-  const revenueItems = [
+  const revenueItems = $derived([
     {
       key: 'invoices',
-      label: 'Invoices',
+      label: $t('nav.invoices', {}, 'Facturas'),
       icon: FileText,
       type: 'dropdown',
       count: undefined,
       children: [
         {
           href: '/invoices',
-          label: 'All Invoices',
+          label: 'Todas las facturas',
           icon: FileText,
           preload: 'off',
           count: undefined
         },
         {
           href: '/invoices/estimates',
-          label: 'Estimates',
+          label: 'Cotizaciones',
           icon: FileEdit,
           preload: 'off',
           count: undefined
         },
         {
           href: '/invoices/products',
-          label: 'Products',
+          label: 'Productos',
           icon: Package,
           preload: 'off',
           count: undefined
         },
         {
           href: '/invoices/recurring',
-          label: 'Recurring',
+          label: 'Recurrentes',
           icon: RefreshCw,
           preload: 'off',
           count: undefined
         },
         {
           href: '/invoices/templates',
-          label: 'Templates',
+          label: 'Plantillas',
           icon: FileCode,
           preload: 'off',
           count: undefined
         },
         {
           href: '/invoices/reports',
-          label: 'Reports',
+          label: 'Reportes',
           icon: BarChart3,
           preload: 'off',
           count: undefined
         }
       ]
     }
-  ];
+  ]);
 
-  const supportItems = [
+  const supportItems = $derived([
     {
       href: '/help',
-      label: 'Help desk',
+      label: $t('nav.help', {}, 'Ayuda'),
       icon: HelpCircle,
       type: 'link',
       preload: 'off',
       count: undefined
     }
-  ];
+  ]);
 
   // Combine for the auto-open-on-active effect (which scans dropdown items)
-  const navigationItems = [
+  const navigationItems = $derived([
     ...workspaceItems,
     ...recordsItems,
     ...workItems,
     ...revenueItems,
     ...supportItems
-  ];
+  ]);
 
   /**
    * Check if any child route is active
@@ -1469,7 +1470,7 @@
               onclick={() => navigateTo('/logout')}
             >
               <LogOut class="size-4" />
-              <span>Sign out</span>
+              <span>{$t('nav.sign_out')}</span>
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>

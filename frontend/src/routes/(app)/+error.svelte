@@ -3,39 +3,31 @@
   import { page } from '$app/state';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import { FileQuestion, Lock, TriangleAlert } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
-  /**
-   * Every failed load in /v2 lands here. Three cases, three different things
-   * to do next, which is the point: "Something went wrong" tells you nothing
-   * and leaves you on a dead page.
-   *
-   * 403 deliberately does not say whether the record exists. Confirming that
-   * an id is real to somebody who cannot open it is an information leak, so
-   * the copy talks about access, never about the record.
-   */
   let status = $derived(page.status);
 
   let shape = $derived(
     status === 404
       ? {
           icon: FileQuestion,
-          title: 'That record is not here',
+          title: 'Ese registro no existe aquí',
           body:
             page.error?.message ||
-            'It may have been deleted, or it belongs to a team you are not part of.'
+            'Es posible que haya sido eliminado o pertenezca a un equipo del que no formas parte.'
         }
       : status === 403
         ? {
             icon: Lock,
-            title: 'You do not have access to this',
-            body: 'Ask an admin in your organisation to give you access, or head back to Today.'
+            title: 'No tienes acceso a esto',
+            body: 'Pide a un administrador de tu organización que te dé acceso, o vuelve a Hoy.'
           }
         : {
             icon: TriangleAlert,
-            title: 'That did not load',
+            title: $i18n('error.title', {}, 'No se pudo cargar'),
             body:
               page.error?.message ||
-              'The server did not answer. Nothing you did caused this, and nothing was saved or lost.'
+              'El servidor no respondió. Nada de lo que hiciste causó esto y ningún dato se perdió.'
           }
   );
 </script>
@@ -47,9 +39,11 @@
     {/snippet}
     {#snippet actions()}
       {#if status >= 500}
-        <button class="v2-btn v2-btn-primary" onclick={() => location.reload()}>Try again</button>
+        <button class="v2-btn v2-btn-primary" onclick={() => location.reload()}>
+          {$i18n('error.try_again', {}, 'Intentar de nuevo')}
+        </button>
       {/if}
-      <a class="v2-btn" href={resolve('/')}>Back to Today</a>
+      <a class="v2-btn" href={resolve('/')}>{$i18n('error.back_to_today', {}, 'Volver a Hoy')}</a>
     {/snippet}
   </EmptyState>
 
