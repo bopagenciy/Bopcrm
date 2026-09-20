@@ -99,10 +99,12 @@ class LeadAccountAssociationTestCase(TestCase):
 
     def test_foreign_tenant_account_association_rejected(self):
         """D. Foreign-tenant Account association is rejected by clean() and save()."""
+        set_rls_context(self.org_b.id)
         account_b = Account.objects.create(
             org=self.org_b,
             name="Foreign Tenant Account",
         )
+        set_rls_context(self.org_a.id)
 
         lead_a = Lead(
             org=self.org_a,
@@ -135,10 +137,13 @@ class LeadAccountAssociationTestCase(TestCase):
 
     def test_serializer_does_not_expose_foreign_tenant_account(self):
         """F. Serializer does not expose foreign-tenant Account even if directly assigned."""
+        set_rls_context(self.org_b.id)
         account_b = Account.objects.create(
             org=self.org_b,
             name="Tenant B Account",
         )
+        set_rls_context(self.org_a.id)
+
         lead = Lead.objects.create(
             org=self.org_a,
             company_name="Tenant A Lead",
