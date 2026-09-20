@@ -27,29 +27,23 @@
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { count, shortDate } from '$lib/v2/format.js';
   import { ChevronRight, ShieldAlert } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
 
   let org = $derived(data.org);
 
-  /**
-   * Weekday hours as one line. When the days do not all match it says so
-   * rather than printing the first day's hours; "09:00-17:00" beside a
-   * calendar where four days run to 17:30 is a summary that is simply wrong,
-   * and this is the number an SLA is measured against.
-   */
   let hoursSummary = $derived.by(() => {
     const open = data.calendar.days.filter((d) => d.open);
-    if (!open.length) return 'No open hours set';
+    if (!open.length) return 'Sin horario de atención configurado';
     const first = open[0];
     const uniform = open.every((d) => d.open === first.open && d.close === first.close);
     return uniform
-      ? `${open.length} days, ${first.open}-${first.close}`
-      : `${open.length} days, hours vary`;
+      ? `${open.length} días, ${first.open}-${first.close}`
+      : `${open.length} días, horario variable`;
   });
 
-  /** An approval rule set to MANAGER with no named approvers matches nobody. */
   let stuckApprovalRules = $derived(
     data.approvalRules.filter(
       (r) => r.is_active && r.approver_role === 'MANAGER' && !r.approvers.length
@@ -58,146 +52,122 @@
 
   let groups = $derived([
     {
-      label: 'People and access',
+      label: 'Personas y accesos',
       items: [
         {
           href: '/team',
-          title: 'Team and access',
-          body: 'Who can sign in, and what their role lets them do.',
-          // People counts are admin-only oversight; a member's fan-out gets no
-          // totals (the endpoint 403s), so the row lists the destination with
-          // no value rather than a misleading zero.
+          title: 'Equipo y accesos',
+          body: 'Quién puede ingresar y lo que su rol le permite hacer.',
           value: data.peopleTotals
-            ? `${data.peopleTotals.count} people · ${data.peopleTotals.admins} admins`
+            ? `${data.peopleTotals.count} personas · ${data.peopleTotals.admins} admins`
             : null,
           warn: data.peopleTotals ? data.peopleTotals.tokens_on_deactivated > 0 : false
         },
         {
           href: '/settings/api-tokens',
-          title: 'API tokens',
-          body: 'Personal access tokens for scripts, integrations and AI agents.',
-          value: data.tokenTotals ? `${data.tokenTotals.live} live` : null,
+          title: 'Tokens de API',
+          body: 'Tokens de acceso personal para scripts, integraciones y agentes de IA.',
+          value: data.tokenTotals ? `${data.tokenTotals.live} activos` : null,
           warn: data.tokenTotals
             ? data.tokenTotals.orphaned > 0 || data.tokenTotals.unused_90d > 0
             : false
         },
         {
-          // Filed with access rather than with the ticket channels, though a
-          // form makes leads and not tickets. What a published web form grants
-          // is the ability for a stranger with no account to write into this
-          // org, which is an access question; that it happens to arrive as a
-          // lead is the smaller half.
           href: '/settings/web-forms',
-          title: 'Web forms',
-          body: 'Forms you embed on your own site. What people fill in becomes a lead.',
-          value: `${data.webFormTotals.published} published`,
-          // Forms are live and nothing has arrived in a month. Usually the
-          // snippet was taken off the site it was pasted onto, which nothing
-          // else would ever tell you. The destination names the individual
-          // forms; this only says that at least one is silent.
+          title: 'Formularios web',
+          body: 'Formularios que integras en tu sitio web. Lo que completan se convierte en prospectos.',
+          value: `${data.webFormTotals.published} publicados`,
           warn: data.webFormTotals.published > 0 && data.webFormTotals.submissions_30d === 0
         },
         {
           href: '/settings/organization',
-          title: 'Organization',
-          body: 'The company details printed on every invoice and estimate.',
+          title: 'Organización',
+          body: 'Los datos de la empresa impresos en facturas y cotizaciones.',
           value: org.company_name,
           warn: false
         }
       ]
     },
     {
-      label: 'How tickets are handled',
+      label: 'Gestión de tickets',
       items: [
         {
           href: '/settings/routing',
-          title: 'Ticket routing',
-          body: 'Who a new ticket lands on, in the order the rules are tried.',
-          value: `${data.routingTotals.active} rules`,
+          title: 'Ruteo de tickets',
+          body: 'A quién se le asigna un nuevo ticket según las reglas configuradas.',
+          value: `${data.routingTotals.active} reglas`,
           warn: data.routingTotals.unrouted_last_30d > 0
         },
         {
           href: '/settings/escalation',
-          title: 'Escalation',
-          body: 'What happens when a ticket misses its response target.',
-          value: `${data.escalationTotals.active} of ${data.escalationTotals.count} priorities`,
+          title: 'Escalamiento',
+          body: 'Qué ocurre cuando un ticket supera el tiempo límite de respuesta.',
+          value: `${data.escalationTotals.active} de ${data.escalationTotals.count} prioridades`,
           warn: data.escalationTotals.breaches_unhandled_30d > 0
         },
         {
           href: '/settings/business-hours',
-          title: 'Business hours',
-          body: 'The clock every response target is measured against.',
+          title: 'Horario de atención',
+          body: 'Horarios contra los cuales se mide el tiempo de respuesta del SLA.',
           value: `${data.calendar.name} · ${hoursSummary}`,
           warn: false
         },
         {
           href: '/settings/ticket-approvals',
-          title: 'Approval rules',
-          body: 'What gates a ticket close, and who can clear it.',
-          value: `${data.approvalTotals.active} active`,
+          title: 'Reglas de aprobación',
+          body: 'Qué condiciona el cierre de un ticket y quién puede aprobarlo.',
+          value: `${data.approvalTotals.active} activas`,
           warn: stuckApprovalRules > 0
         },
         {
           href: '/settings/reopen',
-          title: 'Reopen policy',
-          body: 'Whether a customer reply brings a closed ticket back.',
-          // Admin-only, like people and tokens above: a member's fan-out gets
-          // null (the endpoint 403s), so the row lists the destination without
-          // a value rather than guessing at the policy.
+          title: 'Política de reapertura',
+          body: 'Determina si la respuesta de un cliente reabre un ticket cerrado.',
           value: !data.reopen
             ? null
             : data.reopen.is_enabled
-              ? `Within ${data.reopen.reopen_window_days} days`
-              : 'Off. Closed stays closed',
-          // Replies arriving outside the window are normal for any window, so
-          // that number belongs on the page, not on a warning here. Off is the
-          // state worth flagging: it makes every reply to a closed ticket
-          // vanish, not just the late ones.
+              ? `Dentro de ${data.reopen.reopen_window_days} días`
+              : 'Desactivada',
           warn: data.reopen ? !data.reopen.is_enabled : false
         },
         {
           href: '/settings/inbound-email',
-          title: 'Inbound email',
-          body: 'The addresses that turn email into tickets.',
-          value: `${data.mailboxTotals.active} of ${data.mailboxTotals.count} active`,
-          // Off AND still receiving, not merely off. An address switched off
-          // and left alone is a decision; one still getting mail and creating
-          // nothing is a customer being ignored.
+          title: 'Correo entrante',
+          body: 'Las cuentas de correo que convierten mensajes en tickets.',
+          value: `${data.mailboxTotals.active} de ${data.mailboxTotals.count} activas`,
           warn: data.mailboxTotals.silently_dropping > 0
         }
       ]
     },
     {
-      label: 'Shared words and fields',
+      label: 'Palabras y campos compartidos',
       items: [
         {
           href: '/settings/macros',
-          title: 'Macros',
-          body: 'Canned replies, and the placeholders they substitute.',
-          value: `${data.macroTotals.org} shared`,
+          title: 'Plantillas de respuesta (Macros)',
+          body: 'Respuestas predefinidas y variables sustituibles.',
+          value: `${data.macroTotals.org} compartidas`,
           warn: data.macroTotals.with_unknown_placeholders > 0
         },
         {
           href: '/settings/tags',
-          title: 'Tags',
-          body: 'Labels shared across accounts, leads, deals and tickets.',
-          value: `${data.tagTotals.active} in use`,
-          // Unused tags are housekeeping, not a fault, the tags page lists
-          // them without needing the hub to raise an alarm about tidiness.
+          title: 'Etiquetas',
+          body: 'Etiquetas compartidas entre empresas, prospectos, negocios y tickets.',
+          value: `${data.tagTotals.active} en uso`,
           warn: false
         },
         {
           href: '/settings/custom-fields',
-          title: 'Custom fields',
-          body: 'Fields this organisation added to records.',
-          value: `${data.fieldTotals.active} across ${data.fieldTotals.models_extended} record types`,
+          title: 'Campos personalizados',
+          body: 'Campos adicionales agregados por tu organización a los registros.',
+          value: `${data.fieldTotals.active} en ${data.fieldTotals.models_extended} tipos de registros`,
           warn: data.fieldTotals.required_with_gaps > 0
         },
         {
           href: '/invoices/templates',
-          title: 'Invoice templates',
-          body: 'How an invoice looks when a customer receives it.',
-          value: 'Under Invoices',
+          title: 'Plantillas de factura',
+          body: 'Aspecto visual de las facturas enviadas a los clientes.',
+          value: 'En Facturas',
           warn: false
         }
       ]
@@ -207,12 +177,12 @@
   let warnings = $derived(groups.flatMap((g) => g.items).filter((i) => i.warn).length);
 </script>
 
-<PageHeader title="Settings">
+<PageHeader title={$i18n('settings.title', {}, 'Configuración')}>
   {#snippet sub()}
-    {org.name} · <span class="v2-num">{count(org.member_count)}</span> members · since
+    {org.name} · <span class="v2-num">{count(org.member_count)}</span> miembros · desde
     {shortDate(org.created_at)}
     {#if warnings}
-      · <span class="v2-num">{count(warnings)}</span> need a look
+      · <span class="v2-num">{count(warnings)}</span> requieren atención
     {/if}
   {/snippet}
 </PageHeader>

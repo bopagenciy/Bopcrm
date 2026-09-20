@@ -29,6 +29,7 @@
   import { ROLE_LABEL, ROLE_TONE } from '$lib/v2/enums.js';
   import { enhance } from '$app/forms';
   import { UserPlus, KeyRound } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
@@ -36,7 +37,6 @@
   let inviting = $state(false);
   let busy = $state(false);
 
-  /** A submit handler that flips `busy` while the action runs. */
   const working = () => {
     busy = true;
     return async (/** @type {any} */ { update }) => {
@@ -45,7 +45,6 @@
     };
   };
 
-  /** The invite form both submits and, on success, closes itself. */
   const inviteSubmit = () => {
     busy = true;
     return async (/** @type {any} */ { update, result }) => {
@@ -57,42 +56,42 @@
 </script>
 
 {#if data.forbidden}
-  <PageHeader title="Team and access" />
+  <PageHeader title={$i18n('team.title', {}, 'Equipo y accesos')} />
   <div class="v2-pad" style="padding-top:40px">
     <NextAction
-      label="Admins only"
-      text="Managing people, roles and access is limited to organization admins. Ask an admin on your team if you need someone added or a role changed."
+      label="Solo administradores"
+      text="La gestión de usuarios, roles y accesos está limitada a los administradores de la organización."
     />
   </div>
 {:else}
-  <PageHeader title="Team and access">
+  <PageHeader title={$i18n('team.title', {}, 'Equipo y accesos')}>
     {#snippet sub()}
-      <span class="v2-num">{count(data.totals.count)}</span> people ·
-      <span class="v2-num">{count(data.totals.admins)}</span> admins
+      <span class="v2-num">{count(data.totals.count)}</span> personas ·
+      <span class="v2-num">{count(data.totals.admins)}</span> administradores
     {/snippet}
     {#snippet actions()}
       <button class="v2-btn v2-btn-primary" onclick={() => (inviting = !inviting)}>
-        <UserPlus />Invite
+        <UserPlus />Invitar
       </button>
     {/snippet}
   </PageHeader>
 
   <div class="v2-pad" style="padding-top:16px;flex:none">
     <div class="v2-stats">
-      <StatCard label="Active people" value={count(data.totals.count)} tone="ink" />
+      <StatCard label="Personas activas" value={count(data.totals.count)} tone="ink" />
       <StatCard
-        label="Admins"
+        label="Administradores"
         value={count(data.totals.admins)}
         tone="clay"
-        detail="Can change roles and org settings"
+        detail="Pueden cambiar roles y configuración de la organización"
       />
       <StatCard
-        label="Never signed in"
+        label="Nunca iniciaron sesión"
         value={count(data.totals.never_signed_in)}
         tone={data.totals.never_signed_in ? 'clay' : 'slate'}
-        detail={data.totals.never_signed_in ? 'Invited, seat unclaimed' : 'Everyone has signed in'}
+        detail={data.totals.never_signed_in ? 'Invitados, espacio sin reclamar' : 'Todos han iniciado sesión'}
       />
-      <StatCard label="Deactivated" value={count(data.totals.deactivated)} tone="slate" />
+      <StatCard label="Desactivados" value={count(data.totals.deactivated)} tone="slate" />
     </div>
   </div>
 
@@ -176,17 +175,17 @@
         </div>
       {/if}
 
-      <div class="v2-label" style="margin-bottom:10px">People</div>
+      <div class="v2-label" style="margin-bottom:10px">Personas</div>
       <div class="v2-table-wrap" style="margin-bottom:26px">
         <table class="v2-table">
           <thead>
             <tr>
-              <th>Person</th>
-              <th>Role</th>
-              <th>Teams</th>
+              <th>Persona</th>
+              <th>Rol</th>
+              <th>Equipos</th>
               <th data-m="hide">Tokens</th>
-              <th class="v2-r">Last signed in</th>
-              <th class="v2-r">Manage</th>
+              <th class="v2-r">Último inicio de sesión</th>
+              <th class="v2-r">Gestionar</th>
             </tr>
           </thead>
           <tbody>
@@ -199,7 +198,7 @@
                     <span style="min-width:0">
                       <span class="v2-table-primary">
                         {m.name}{#if m.is_you}<span class="v2-sub" style="font-weight:400"
-                            >, you</span
+                            >, tú</span
                           >{/if}
                       </span>
                       <span class="v2-table-secondary" style="display:block">{m.email}</span>

@@ -16,7 +16,6 @@
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
       <img src={imgLogo} alt="BOP CRM" />
-      <b>BOP CRM</b>
     </a>
 
     <div class="v2-auth-card" style="text-align:center">

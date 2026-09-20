@@ -1,26 +1,13 @@
 <script>
   import { resolve } from '$app/paths';
-  /**
-   * Your own account.
-   *
-   * The fields that are NOT editable here are the interesting ones. Role is
-   * shown and cannot be changed from this page. The API refuses to let anyone
-   * change their own role (ProfileSelfUpdateSerializer names only name and
-   * phone), and an input that always fails is worse than no input. Same for the
-   * organisation: which org you are in decides which rows you can see at all,
-   * and it comes from the JWT, not from a form.
-   *
-   * Two things you CAN do: edit your name and phone (PATCH /profile/), and
-   * switch org, a real action that re-issues the token rather than editing a
-   * field, so it goes through its own action and the copy says so.
-   */
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
   import Avatar from '$lib/v2/components/Avatar.svelte';
   import { relativeDays, shortDate, count } from '$lib/v2/format.js';
   import { ROLE_LABEL, ROLE_TONE } from '$lib/v2/enums.js';
-  import { KeyRound, Lock, ArrowLeftRight } from '@lucide/svelte';
+  import { KeyRound, Lock, ArrowLeftRight, Globe } from '@lucide/svelte';
+  import { t as i18n, locale, setLocale, SUPPORTED_LOCALES } from '$lib/i18n';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
@@ -28,8 +15,6 @@
   let p = $derived(data.profile);
   let name = $derived(`${p.user_details.first_name} ${p.user_details.last_name}`.trim());
 
-  // Editing name + phone. The backend stores one `name` on User, so the form
-  // offers a single full-name field rather than the split the header renders.
   let editing = $state(false);
   let editName = $state('');
   let editPhone = $state('');
@@ -41,36 +26,36 @@
   }
 
   const onEdit = (/** @type {any} */ { formData }) => {
-    // Only send the field the person actually changed. The PATCH treats an
-    // absent field as "leave it alone", so an untouched phone is not
-    // re-validated, which matters because some seeded numbers carry an
-    // extension the validator rejects, and re-sending one would block a plain
-    // name change. Same rule the leads form uses for its owner select.
     if ((formData.get('name') ?? '') === name) formData.delete('name');
     if ((formData.get('phone') ?? '') === (p.phone || '')) formData.delete('phone');
 
     return async (/** @type {any} */ { result, update }) => {
       if (result.type === 'success') {
         editing = false;
-        await update(); // reloads the profile with the saved values
+        await update();
       } else {
-        await update({ reset: false }); // keep what they typed, show the message
+        await update({ reset: false });
       }
     };
   };
 
-  // `form` is shared by both actions; the switch action tags its failures.
   let editError = $derived(form?.scope === 'switch' ? '' : (form?.message ?? ''));
   let switchError = $derived(form?.scope === 'switch' ? (form?.message ?? '') : '');
+
+  function handleLanguageChange(e) {
+    setLocale(e.target.value);
+  }
 </script>
 
 <PageHeader title={name} record>
   {#snippet sub()}
-    {ROLE_LABEL[p.role]} · {data.org.name} · joined {shortDate(p.joined_at)}
+    {ROLE_LABEL[p.role]} · {data.org.name} · {$i18n('profile.joined', {}, 'se unió')} {shortDate(p.joined_at)}
   {/snippet}
   {#snippet actions()}
     {#if !editing}
-      <button class="v2-btn v2-btn-primary" onclick={openEdit}>Edit details</button>
+      <button class="v2-btn v2-btn-primary" onclick={openEdit}>
+        {$i18n('profile.edit_details', {}, 'Editar detalles')}
+      </button>
     {/if}
   {/snippet}
 </PageHeader>
@@ -79,7 +64,7 @@
   <div class="v2-pad" style="padding-top:18px;padding-bottom:32px">
     <div class="v2-split">
       <div>
-        <div class="v2-label" style="margin-bottom:10px">You</div>
+        <div class="v2-label" style="margin-bottom:10px">{$i18n('profile.you', {}, 'TÚ')}</div>
 
         {#if editing}
           <form
@@ -90,7 +75,7 @@
             style="padding:17px 18px;margin-bottom:20px"
           >
             <div class="v2-field">
-              <label for="f-name">Full name</label>
+              <label for="f-name">{$i18n('common.full_name', {}, 'Nombre completo')}</label>
               <input
                 id="f-name"
                 name="name"
@@ -100,7 +85,7 @@
               />
             </div>
             <div class="v2-field" style="margin-top:12px">
-              <label for="f-phone">Phone</label>
+              <label for="f-phone">{$i18n('profile.phone', {}, 'Teléfono')}</label>
               <input
                 id="f-phone"
                 name="phone"
@@ -108,14 +93,14 @@
                 bind:value={editPhone}
                 placeholder="+44 20 7946 0100"
               />
-              <p class="v2-hint">Digits and separators only. Leave blank to remove it.</p>
+              <p class="v2-hint">Solo dígitos y separadores. Déjalo en blanco para eliminarlo.</p>
             </div>
             {#if editError}
               <p class="v2-error" style="margin-top:10px">{editError}</p>
             {/if}
             <div style="display:flex;gap:8px;margin-top:16px">
-              <button class="v2-btn v2-btn-primary" type="submit">Save</button>
-              <button class="v2-btn" type="button" onclick={() => (editing = false)}>Cancel</button>
+              <button class="v2-btn v2-btn-primary" type="submit">{$i18n('common.save', {}, 'Guardar')}</button>
+              <button class="v2-btn" type="button" onclick={() => (editing = false)}>{$i18n('common.cancel', {}, 'Cancelar')}</button>
             </div>
           </form>
         {:else}
@@ -128,37 +113,53 @@
               </div>
             </div>
             <dl class="v2-kv">
-              <dt>Phone</dt>
+              <dt>{$i18n('profile.phone', {}, 'Teléfono')}</dt>
               <dd class="v2-num" style="font-size:12px">{p.phone || '—'}</dd>
-              <dt>Teams</dt>
+              <dt>{$i18n('profile.teams', {}, 'Equipos')}</dt>
               <dd>{p.teams.join(', ') || '—'}</dd>
-              <dt>Joined</dt>
+              <dt>{$i18n('profile.joined', {}, 'Se unió')}</dt>
               <dd>{shortDate(p.joined_at)}</dd>
-              <dt>Last signed in</dt>
+              <dt>{$i18n('profile.last_signed_in', {}, 'Último inicio de sesión')}</dt>
               <dd>{relativeDays(p.last_login)}</dd>
             </dl>
           </div>
         {/if}
 
-        <div class="v2-label" style="margin-bottom:10px">Organisations</div>
+        <div class="v2-label" style="margin-bottom:10px">{$i18n('profile.preferences', {}, 'PREFERENCIAS')}</div>
+        <div class="v2-card" style="padding:17px 18px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <Globe size={18} style="color:var(--v2-slate)" />
+              <div>
+                <b style="font-size:13.5px;display:block">{$i18n('profile.interface_language', {}, 'Idioma de la interfaz')}</b>
+                <span class="v2-sub" style="font-size:11.5px">Selecciona tu idioma de preferencia</span>
+              </div>
+            </div>
+            <select class="v2-input" style="width:auto;min-width:140px;padding:6px 10px" value={$locale} onchange={handleLanguageChange}>
+              {#each SUPPORTED_LOCALES as loc}
+                <option value={loc.code}>{loc.label}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
+        <div class="v2-label" style="margin-bottom:10px">{$i18n('profile.organisations', {}, 'ORGANIZACIONES')}</div>
         <div class="v2-card" style="overflow:hidden">
           {#each p.orgs as o (o.id)}
             <div class="v2-setting">
               <div class="v2-setting-body">
                 <b>{o.name}</b>
                 <span class="v2-sub" style="font-size:11.5px">
-                  You are {ROLE_LABEL[o.role] === 'Admin' ? 'an admin' : 'a member'} here
+                  {ROLE_LABEL[o.role] === 'Admin' ? 'Administrador aquí' : 'Miembro aquí'}
                 </span>
               </div>
               {#if o.is_current}
-                <Pill tone="ink" dot>Current</Pill>
+                <Pill tone="ink" dot>{$i18n('profile.current', {}, 'Actual')}</Pill>
               {:else}
-                <!-- Switching org re-issues the token; it does not edit a field
-                     on this page. The action swaps the cookies and reloads. -->
                 <form method="POST" action="?/switchOrg" use:enhance class="v2-inline-form">
                   <input type="hidden" name="org_id" value={o.id} />
                   <button class="v2-btn v2-btn-sm" type="submit">
-                    <ArrowLeftRight size={12} />Switch
+                    <ArrowLeftRight size={12} />Cambiar
                   </button>
                 </form>
               {/if}
@@ -169,33 +170,28 @@
           <p class="v2-error" style="margin-top:9px">{switchError}</p>
         {/if}
         <p class="v2-sub" style="font-size:11.5px;margin-top:11px">
-          Switching organisation signs you in again with a new token. Which org you are in decides
-          which records exist for you at all, so it is not a filter you can toggle.
+          Al cambiar de organización se inicia sesión nuevamente con un nuevo token. La organización activa determina los registros visibles.
         </p>
       </div>
 
       <div>
-        <div class="v2-label" style="margin-bottom:10px">Access</div>
+        <div class="v2-label" style="margin-bottom:10px">{$i18n('profile.access', {}, 'ACCESO')}</div>
         <div class="v2-card" style="overflow:hidden;margin-bottom:20px">
           <div class="v2-setting">
             <div class="v2-setting-body">
-              <b>Role</b>
-              <!-- Displayed, never editable from here. -->
+              <b>{$i18n('profile.role', {}, 'Rol')}</b>
               <span class="v2-sub" style="font-size:11.5px">
-                Set by an admin. You cannot change your own role.
+                Asignado por un administrador. No puedes cambiar tu propio rol.
               </span>
             </div>
             <Lock size={14} style="color:var(--v2-slate);flex:none" />
             <Pill tone={ROLE_TONE[p.role]}>{ROLE_LABEL[p.role]}</Pill>
           </div>
-          <!-- /profile/tokens, not /settings/api-tokens. The settings page is
-               the org-wide oversight list and 403s a member, so this count used
-               to lead most of the people who clicked it to "Admins only". -->
           <a class="v2-setting" href={resolve('/profile/tokens')}>
             <div class="v2-setting-body">
-              <b>API tokens</b>
+              <b>{$i18n('profile.api_tokens', {}, 'Tokens de API')}</b>
               <span class="v2-sub" style="font-size:11.5px">
-                Each one signs in as you, with your role.
+                Cada token permite iniciar sesión con tu cuenta y tu rol.
               </span>
             </div>
             <KeyRound size={14} style="color:var(--v2-slate);flex:none" />
@@ -205,37 +201,32 @@
           </a>
           <div class="v2-setting">
             <div class="v2-setting-body">
-              <b>Sign-in method</b>
-              <!-- It used to say "Google, on <email>", which is false for
-                   anyone who signed in with an emailed code. Nothing in the
-                   payload says which was used, so this states what holds for
-                   both rather than guessing. -->
+              <b>{$i18n('profile.sign_in_method', {}, 'Método de inicio de sesión')}</b>
               <span class="v2-sub" style="font-size:11.5px">
-                {p.user_details.email}, by Google or an emailed code. There is no password to
-                change.
+                {p.user_details.email}, mediante Google o código enviado por correo. No hay contraseña que cambiar.
               </span>
             </div>
           </div>
         </div>
 
-        <div class="v2-label" style="margin-bottom:10px">Where your work shows up</div>
+        <div class="v2-label" style="margin-bottom:10px">{$i18n('profile.work_shows_up', {}, 'DONDE APARECE TU TRABAJO')}</div>
         <div class="v2-card" style="overflow:hidden">
           <a class="v2-setting" href={resolve('/goals')}>
             <div class="v2-setting-body">
-              <b>Goals</b>
-              <span class="v2-sub" style="font-size:11.5px">Your quota and how it is pacing</span>
+              <b>{$i18n('profile.goals', {}, 'Objetivos')}</b>
+              <span class="v2-sub" style="font-size:11.5px">Tu cuota y progreso actual</span>
             </div>
           </a>
           <a class="v2-setting" href={resolve('/timesheet')}>
             <div class="v2-setting-body">
-              <b>Timesheet</b>
-              <span class="v2-sub" style="font-size:11.5px">Hours you have logged this week</span>
+              <b>{$i18n('profile.timesheet', {}, 'Registro de tiempo')}</b>
+              <span class="v2-sub" style="font-size:11.5px">Horas registradas esta semana</span>
             </div>
           </a>
           <a class="v2-setting" href={resolve('/tasks')}>
             <div class="v2-setting-body">
-              <b>Tasks</b>
-              <span class="v2-sub" style="font-size:11.5px">What is assigned to you</span>
+              <b>{$i18n('profile.tasks', {}, 'Tareas')}</b>
+              <span class="v2-sub" style="font-size:11.5px">Lo que tienes asignado</span>
             </div>
           </a>
         </div>

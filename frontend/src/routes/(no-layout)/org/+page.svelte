@@ -5,6 +5,7 @@
   import imgLogo from '$lib/assets/images/logo.png';
   import { Building2, LogOut, Plus, ChevronRight } from '@lucide/svelte';
   import { enhance } from '$app/forms';
+  import { t } from '$lib/i18n';
 
   let { data = { orgs: [] } } = $props();
   let orgs = $derived(data?.orgs ?? []);
@@ -14,23 +15,22 @@
 </script>
 
 <svelte:head>
-  <title>Choose organisation · BOP CRM</title>
+  <title>{$t('org.title')} · BOP CRM</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
       <img src={imgLogo} alt="BOP CRM" />
-      <b>BOP CRM</b>
     </a>
 
     <div class="v2-auth-card">
       <div class="v2-auth-head">
-        <h1>Choose an organisation</h1>
+        <h1>{$t('org.title')}</h1>
         <p>
           {orgs.length
-            ? "Pick the workspace you'd like to open."
-            : 'Create your first workspace to get started.'}
+            ? $t('org.subtitle')
+            : $t('org.no_orgs_desc')}
         </p>
       </div>
 
@@ -58,7 +58,7 @@
               <span class="v2-auth-org-body">
                 <b>{org.name}</b>
                 <span class="v2-sub" style="display:block;text-transform:capitalize">
-                  {org.role?.toLowerCase() || 'member'}
+                  {org.role?.toLowerCase() || 'miembro'}
                 </span>
               </span>
               {#if loading && selectedOrgId === org.id}
@@ -72,16 +72,16 @@
 
         <a href={resolve('/org/new')} class="v2-auth-add">
           <Plus />
-          Create new organisation
+          {$t('org.create')}
         </a>
       {:else}
         <div class="v2-state" style="padding:22px 0 8px">
           <div class="v2-state-icon"><Building2 size={22} /></div>
-          <h3>No organisations yet</h3>
-          <p>Create your first workspace to start using BOP CRM.</p>
+          <h3>{$t('org.no_orgs')}</h3>
+          <p>{$t('org.no_orgs_desc')}</p>
           <a href={resolve('/org/new')} class="v2-btn v2-btn-primary">
             <Plus size={15} />
-            Create organisation
+            {$t('org.create')}
           </a>
         </div>
       {/if}
@@ -89,7 +89,7 @@
 
     <div class="v2-auth-foot">
       <a href={resolve('/logout')} style="display:inline-flex;align-items:center;gap:5px">
-        <LogOut size={13} /> Sign out
+        <LogOut size={13} /> {$t('nav.sign_out')}
       </a>
     </div>
   </div>

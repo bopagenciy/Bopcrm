@@ -37,13 +37,11 @@
   import Avatar from '$lib/v2/components/Avatar.svelte';
   import { relativeTime } from '$lib/v2/format.js';
   import { BellOff, AtSign, MessageSquare, Bell, Check, LifeBuoy } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
 
-  /* Local copy: marking read is a real state change in this page's terms even
-     though nothing is persisted yet. It is not derived from `data`, or every
-     revalidation would resurrect what you just cleared. */
   let rows = $state(untrack(() => data.results.map((n) => ({ ...n }))));
   let filter = $state(/** @type {'unread' | 'all'} */ ('unread'));
 
@@ -57,16 +55,11 @@
     'support.status_changed': LifeBuoy
   };
 
-  /**
-   * "mentioned you" / "commented" for the verbs that exist; a readable
-   * fallback for the ones that do not. `case.sla_breached` becomes
-   * "sla breached" and not `case.sla_breached`.
-   */
   function verbPhrase(n) {
-    if (n.verb === 'case.mentioned') return 'mentioned you on';
-    if (n.verb === 'case.commented') return 'commented on';
-    if (n.verb === 'support.replied') return 'replied to';
-    if (n.verb === 'support.status_changed') return 'updated';
+    if (n.verb === 'case.mentioned') return 'te mencionó en';
+    if (n.verb === 'case.commented') return 'comentó en';
+    if (n.verb === 'support.replied') return 'respondió a';
+    if (n.verb === 'support.status_changed') return 'actualizó';
     return `${n.verb.replace(/^[^.]+\./, '').replace(/_/g, ' ')}, `;
   }
 
@@ -74,17 +67,11 @@
     return n.verb?.startsWith('support.');
   }
 
-  /* Persist to a page action. `keepalive` so the write survives the navigation
-     that a link click starts, clicking a notification both opens the ticket
-     AND marks it read, and the read must not be cancelled mid-flight. */
   async function post(/** @type {string} */ action, /** @type {FormData} */ body) {
     const res = await fetch(action, { method: 'POST', body, keepalive: true });
     return deserialize(await res.text());
   }
 
-  /* Marking read is optimistic, the dot clears immediately, then persisted.
-     If the API refuses (or the network fails) the change is put back, so the
-     page never shows a state the server did not accept. */
   async function markRead(/** @type {any} */ n) {
     if (n.read_at !== null) return;
     n.read_at = new Date().toISOString();
@@ -112,12 +99,12 @@
   }
 </script>
 
-<PageHeader title="Notifications">
+<PageHeader title={$i18n('notifications.title', {}, 'Notificaciones')}>
   {#snippet sub()}
     {#if unread.length}
-      <span class="v2-num">{unread.length}</span> unread
+      <span class="v2-num">{unread.length}</span> sin leer
     {:else}
-      Nothing unread
+      {$i18n('notifications.nothing_unread', {}, 'No hay notificaciones sin leer')}
     {/if}
   {/snippet}
   {#snippet actions()}
@@ -126,10 +113,10 @@
       type="button"
       onclick={() => (filter = filter === 'unread' ? 'all' : 'unread')}
     >
-      {filter === 'unread' ? 'Show read too' : 'Unread only'}
+      {filter === 'unread' ? $i18n('notifications.show_read_too', {}, 'Mostrar también leídas') : 'Solo no leídas'}
     </button>
     <button class="v2-btn" type="button" disabled={!unread.length} onclick={markAllRead}>
-      <Check />Mark all read
+      <Check />{$i18n('notifications.mark_all_read', {}, 'Marcar todas como leídas')}
     </button>
   {/snippet}
 </PageHeader>
@@ -138,20 +125,20 @@
   <div class="v2-pad" style="padding-top:16px;padding-bottom:32px">
     {#if visible.length === 0}
       <EmptyState
-        title={filter === 'unread' ? 'Nothing unread' : 'No notifications'}
+        title={filter === 'unread' ? $i18n('notifications.nothing_unread', {}, 'No hay notificaciones sin leer') : 'Sin notificaciones'}
         body={filter === 'unread'
-          ? 'Everything here has been read. Notifications arrive for CRM ticket activity and updates from BottleCRM Support.'
-          : 'Notifications arrive for CRM ticket activity and updates from BottleCRM Support.'}
+          ? 'Todo está al día. Las notificaciones llegarán cuando haya actividad en tus tickets de CRM o soporte.'
+          : 'Las notificaciones llegarán cuando haya actividad en tus tickets de CRM o soporte.'}
       >
         {#snippet icon()}<BellOff size={21} />{/snippet}
         {#snippet actions()}
           {#if filter === 'unread' && rows.length}
             <button class="v2-btn" type="button" onclick={() => (filter = 'all')}>
-              Show read too
+              {$i18n('notifications.show_read_too', {}, 'Mostrar también leídas')}
             </button>
           {/if}
-          <a class="v2-btn" href={resolve('/tickets')}>Go to tickets</a>
-          <a class="v2-btn" href={resolve('/help')}>Get help</a>
+          <a class="v2-btn" href={resolve('/tickets')}>{$i18n('notifications.go_to_tickets', {}, 'Ir a Tickets')}</a>
+          <a class="v2-btn" href={resolve('/help')}>{$i18n('notifications.get_help', {}, 'Obtener ayuda')}</a>
         {/snippet}
       </EmptyState>
     {:else}
