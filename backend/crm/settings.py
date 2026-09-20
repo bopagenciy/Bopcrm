@@ -214,6 +214,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # live tenant's boundaries move.
 TIME_ZONE = "UTC"
 
+LANGUAGE_CODE = "es"
+
 USE_I18N = True
 
 USE_TZ = True
