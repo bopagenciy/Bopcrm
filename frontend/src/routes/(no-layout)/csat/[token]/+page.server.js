@@ -7,11 +7,12 @@
  */
 
 import { fail } from '@sveltejs/kit';
+import { env as privateEnv } from '$env/dynamic/private';
 import { env } from '$env/dynamic/public';
 
 import { preselectedRating } from '$lib/server/v2/csat.js';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${privateEnv.INTERNAL_DJANGO_API_URL || env.PUBLIC_DJANGO_API_URL}/api`;
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ params, fetch, url }) {

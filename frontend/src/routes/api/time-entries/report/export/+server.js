@@ -13,9 +13,10 @@
  * this caller may see, which is where that decision belongs.
  */
 
+import { env as privateEnv } from '$env/dynamic/private';
 import { env } from '$env/dynamic/public';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${privateEnv.INTERNAL_DJANGO_API_URL || env.PUBLIC_DJANGO_API_URL}/api`;
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ cookies, request, url }) {

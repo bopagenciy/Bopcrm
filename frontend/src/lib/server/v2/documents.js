@@ -50,11 +50,12 @@
  *   endpoint gated by the same `_may_read` the detail view uses.
  */
 import { apiRequest } from '$lib/api-helpers.js';
+import { env as privateEnv } from '$env/dynamic/private';
 import { env } from '$env/dynamic/public';
 import { documentHref } from './files.js';
 import { getOrgPeopleAndTeams } from './org-people.js';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${privateEnv.INTERNAL_DJANGO_API_URL || env.PUBLIC_DJANGO_API_URL}/api`;
 
 /** The two document states the backend accepts (Document.DOCUMENT_STATUS_CHOICE). */
 export const STATUS_CHOICES = ['active', 'inactive'];

@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { env as privateEnv } from '$env/dynamic/private';
 import { env } from '$env/dynamic/public';
 
 /**
@@ -17,7 +18,8 @@ export async function GET({ params, cookies }) {
   const token = cookies.get('jwt_access');
   if (!token) error(401, 'Not signed in.');
 
-  const upstream = await fetch(`${env.PUBLIC_DJANGO_API_URL}/api/invoices/${params.id}/pdf/`, {
+  const apiUrl = privateEnv.INTERNAL_DJANGO_API_URL || env.PUBLIC_DJANGO_API_URL;
+  const upstream = await fetch(`${apiUrl}/api/invoices/${params.id}/pdf/`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 

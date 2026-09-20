@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { env as privateEnv } from '$env/dynamic/private';
 import { env } from '$env/dynamic/public';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -9,8 +10,9 @@ export async function GET({ cookies, params, fetch }) {
   const token = cookies.get('jwt_access');
   if (!token) error(401, 'Sign in to download this attachment');
 
+  const apiUrl = privateEnv.INTERNAL_DJANGO_API_URL || env.PUBLIC_DJANGO_API_URL;
   const response = await fetch(
-    `${env.PUBLIC_DJANGO_API_URL}/api/support/messages/${params.messageId}/attachment/`,
+    `${apiUrl}/api/support/messages/${params.messageId}/attachment/`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   if (!response.ok || !response.body) {

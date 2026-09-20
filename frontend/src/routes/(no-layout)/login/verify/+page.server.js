@@ -24,7 +24,7 @@ export async function load({ url, cookies }) {
   }
 
   try {
-    const apiUrl = publicEnv.PUBLIC_DJANGO_API_URL;
+    const apiUrl = env.INTERNAL_DJANGO_API_URL || publicEnv.PUBLIC_DJANGO_API_URL;
     const response = await axios.post(
       `${apiUrl}/api/auth/magic-link/verify/`,
       { token },

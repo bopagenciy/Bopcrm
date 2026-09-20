@@ -6,12 +6,13 @@
  */
 
 import { error, fail } from '@sveltejs/kit';
+import { env as privateEnv } from '$env/dynamic/private';
 import { env } from '$env/dynamic/public';
 
 // The Django API, reached server-to-server. Absolute (not a relative `/api/...`
 // that only resolves behind a production reverse proxy) so the anonymous portal
 // works the same in dev and prod. The CSAT loader takes the same approach.
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${privateEnv.INTERNAL_DJANGO_API_URL || env.PUBLIC_DJANGO_API_URL}/api`;
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ params, fetch }) {

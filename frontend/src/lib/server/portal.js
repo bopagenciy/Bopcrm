@@ -13,9 +13,10 @@
  * surface entirely. See the design note in `common/portal_auth.py`.
  */
 
+import { env as privateEnv } from '$env/dynamic/private';
 import { env } from '$env/dynamic/public';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api/portal`;
+const API_BASE_URL = `${privateEnv.INTERNAL_DJANGO_API_URL || env.PUBLIC_DJANGO_API_URL}/api/portal`;
 
 export const ACCESS_COOKIE = 'portal_access';
 export const ORG_COOKIE = 'portal_org';
