@@ -489,6 +489,14 @@
 
     <div class="v2-label v2-rail-head">Lead</div>
     <dl class="v2-kv">
+      {#if lead.account}
+        <dt>{$i18n('integration.related_account', {}, 'Related Account')}</dt>
+        <dd style="font-size:12px">
+          <a href="/accounts/{lead.account.id}" class="v2-link" style="color:var(--v2-ink);text-decoration:underline">
+            {lead.account.name}
+          </a>
+        </dd>
+      {/if}
       <dt>Status</dt>
       <dd><Pill tone={LEAD_STATUS_TONE[lead.status]}>{LEAD_STATUS_LABEL[lead.status]}</Pill></dd>
       <dt>Owner</dt>

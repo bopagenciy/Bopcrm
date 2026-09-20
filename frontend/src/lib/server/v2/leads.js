@@ -77,7 +77,10 @@ function toRow(lead) {
     // substituting `updated_at`. An edit is not a conversation, and a list
     // whose "Last touch" quietly counts edits stops being worth reading.
     last_contacted: lead.last_contacted ?? null,
-    created_at: lead.created_at
+    created_at: lead.created_at,
+    account: lead.account && typeof lead.account === 'object' && lead.account.id && lead.account.name
+      ? { id: String(lead.account.id).trim(), name: String(lead.account.name).trim() }
+      : null
   };
 }
 
@@ -128,11 +131,25 @@ function lastTouch(row) {
 export async function getLead({ cookies }, id) {
   const response = await fetchDetail(cookies, id);
   const rawLead = response.lead_obj;
+  let account = null;
+  if (rawLead.account && typeof rawLead.account === 'object') {
+    const accId = rawLead.account.id ? String(rawLead.account.id).trim() : '';
+    const accName = rawLead.account.name ? String(rawLead.account.name).trim() : '';
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(accId) && accName) {
+      account = { id: accId, name: accName };
+    }
+  }
+
   // `description` is a real field the edit form owns, but `toRow` leaves it out
   // because the list has no use for it. The detail page does. It is the one
   // place a lead's free text is worth reading, so it is attached here rather
   // than widening every list row to carry a paragraph nobody scans.
-  const lead = { ...toRow(rawLead), description: rawLead.description ?? '' };
+  const lead = {
+    ...toRow(rawLead),
+    description: rawLead.description ?? '',
+    account
+  };
 
   // Per-org custom fields. A vertical pack's whole promise is the fields it
   // sets up for the industry, and they are stored on the lead, so the detail

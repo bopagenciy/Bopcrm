@@ -198,4 +198,77 @@ describe('getLead provenance', () => {
     const result = await getLead(event, 'lead-unverified');
     expect(result.bopClients).toBeNull();
   });
+
+  it('normalizes verified related account with valid UUID', async () => {
+    apiRequest.mockImplementation(async (endpoint) => {
+      if (endpoint === '/leads/lead-with-account/') {
+        return {
+          lead_obj: {
+            id: 'lead-with-account',
+            first_name: 'Contact',
+            last_name: 'Person',
+            company_name: 'Acme Corp',
+            account: {
+              id: '4eccb255-5745-4f59-ae8a-b2edf5466290',
+              name: 'Acme Corp'
+            }
+          },
+          comments: [],
+          attachments: []
+        };
+      }
+      if (endpoint.startsWith('/custom-fields/')) {
+        return { results: [] };
+      }
+      return { open_leads: { open_leads: [] } };
+    });
+
+    const result = await getLead(event, 'lead-with-account');
+    expect(result.lead.account).toEqual({
+      id: '4eccb255-5745-4f59-ae8a-b2edf5466290',
+      name: 'Acme Corp'
+    });
+  });
+
+  it('normalizes account to null when account is absent or invalid', async () => {
+    apiRequest.mockImplementation(async (endpoint) => {
+      if (endpoint === '/leads/lead-no-account/') {
+        return {
+          lead_obj: {
+            id: 'lead-no-account',
+            first_name: 'Contact',
+            last_name: 'Person',
+            account: null
+          },
+          comments: [],
+          attachments: []
+        };
+      }
+      if (endpoint === '/leads/lead-bad-account/') {
+        return {
+          lead_obj: {
+            id: 'lead-bad-account',
+            first_name: 'Contact',
+            last_name: 'Person',
+            account: {
+              id: 'not-a-valid-uuid',
+              name: 'Fake'
+            }
+          },
+          comments: [],
+          attachments: []
+        };
+      }
+      if (endpoint.startsWith('/custom-fields/')) {
+        return { results: [] };
+      }
+      return { open_leads: { open_leads: [] } };
+    });
+
+    const res1 = await getLead(event, 'lead-no-account');
+    expect(res1.lead.account).toBeNull();
+
+    const res2 = await getLead(event, 'lead-bad-account');
+    expect(res2.lead.account).toBeNull();
+  });
 });

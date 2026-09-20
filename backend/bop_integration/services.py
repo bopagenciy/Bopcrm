@@ -67,7 +67,13 @@ def ingest_prospect_ready_for_crm(event_log: BopEventLog) -> Dict[str, Any]:
 
     if existing_map:
         lead = existing_map.content_object
-        account = Account.objects.filter(org=org, name__iexact=company_name).first()
+        account = None
+        if lead and getattr(lead, "account_id", None):
+            account = Account.objects.filter(org=org, id=lead.account_id).first()
+        if not account:
+            # Replay of legacy or unassociated record:
+            # Return matching account for response without persisting a guessed link.
+            account = Account.objects.filter(org=org, name__iexact=company_name).first()
         return {
             "account": account,
             "lead": lead,
@@ -167,6 +173,7 @@ def ingest_prospect_ready_for_crm(event_log: BopEventLog) -> Dict[str, Any]:
         # Zero contact PII: first_name, last_name, email, phone remain None
         lead = Lead.objects.create(
             org=org,
+            account=account,
             company_name=company_name[:255],
             title=f"Prospect: {company_name}"[:255],
             status="assigned",

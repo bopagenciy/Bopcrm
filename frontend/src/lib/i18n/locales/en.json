@@ -320,6 +320,7 @@
     "priority_high": "High",
     "priority_medium": "Medium",
     "priority_low": "Low",
-    "fallback_lead_title": "Lead"
+    "fallback_lead_title": "Lead",
+    "related_account": "Related Account"
   }
 }

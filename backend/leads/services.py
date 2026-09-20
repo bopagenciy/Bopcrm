@@ -31,30 +31,40 @@ def convert_lead_to_account(lead_obj, request, create_opportunity=True):
     Returns:
         tuple: (account, contact, opportunity) - the created entities (Contact/Opportunity may be None)
     """
-    # Create or get existing Account (handles unique_account_name_per_org constraint)
-    account_name = (
-        lead_obj.company_name
-        if lead_obj.company_name
-        else f"{lead_obj.first_name} {lead_obj.last_name}"
-    )
-    account, created = Account.objects.get_or_create(
-        name__iexact=account_name,
-        org=request.profile.org,
-        defaults={
-            "created_by": request.profile.user,
-            "name": account_name,
-            "email": lead_obj.email,
-            "phone": lead_obj.phone,
-            "description": lead_obj.description,
-            "website": lead_obj.website,
-            "is_active": True,
-            "address_line": lead_obj.address_line,
-            "city": lead_obj.city,
-            "state": lead_obj.state,
-            "postcode": lead_obj.postcode,
-            "country": lead_obj.country,
-        },
-    )
+    # Reuse verified related Account if already associated, ensuring same-tenant match
+    account = None
+    if (
+        lead_obj.account_id
+        and lead_obj.account
+        and lead_obj.account.org_id == request.profile.org.id
+        and lead_obj.account.is_active
+    ):
+        account = lead_obj.account
+    else:
+        # Create or get existing Account (handles unique_account_name_per_org constraint)
+        account_name = (
+            lead_obj.company_name
+            if lead_obj.company_name
+            else f"{lead_obj.first_name} {lead_obj.last_name}"
+        )
+        account, created = Account.objects.get_or_create(
+            name__iexact=account_name,
+            org=request.profile.org,
+            defaults={
+                "created_by": request.profile.user,
+                "name": account_name,
+                "email": lead_obj.email,
+                "phone": lead_obj.phone,
+                "description": lead_obj.description,
+                "website": lead_obj.website,
+                "is_active": True,
+                "address_line": lead_obj.address_line,
+                "city": lead_obj.city,
+                "state": lead_obj.state,
+                "postcode": lead_obj.postcode,
+                "country": lead_obj.country,
+            },
+        )
 
     # Copy tags
     for tag in lead_obj.tags.all():
@@ -159,8 +169,9 @@ def convert_lead_to_account(lead_obj, request, create_opportunity=True):
         if contact:
             opportunity.contacts.add(contact)
 
-    # Update lead status to converted
+    # Update lead status to converted and link to converted account
     lead_obj.status = "converted"
+    lead_obj.account = account
     lead_obj.save()
 
     return account, contact, opportunity

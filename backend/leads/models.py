@@ -119,6 +119,14 @@ class Lead(AssignableMixin, BaseModel):
     tags = models.ManyToManyField(Tags, related_name="lead_tags", blank=True)
     contacts = models.ManyToManyField(Contact, related_name="lead_contacts")
     org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name="leads")
+    account = models.ForeignKey(
+        "accounts.Account",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leads",
+        help_text=_("Related company account (optional before or after lead conversion)"),
+    )
     company_name = models.CharField(
         _("Company Name"), max_length=255, blank=True, null=True
     )
@@ -188,12 +196,47 @@ class Lead(AssignableMixin, BaseModel):
         super().clean()
         errors = {}
 
+        # Ensure associated account belongs to the same organization
+        if self.account_id:
+            account_org_id = None
+            if self.account:
+                account_org_id = self.account.org_id
+            else:
+                from accounts.models import Account
+
+                acc = Account.objects.filter(id=self.account_id).only("org_id").first()
+                if acc:
+                    account_org_id = acc.org_id
+            if account_org_id and str(account_org_id) != str(self.org_id):
+                errors["account"] = _(
+                    "Related account must belong to the same organization."
+                )
+
         # Email required for conversion (need contact info to create Contact)
         if self.status == "converted" and not self.email:
             errors["email"] = _("Email is required to convert lead")
 
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        if self.account_id:
+            account_org_id = None
+            if self.account:
+                account_org_id = self.account.org_id
+            else:
+                from accounts.models import Account
+
+                acc = Account.objects.filter(id=self.account_id).only("org_id").first()
+                if acc:
+                    account_org_id = acc.org_id
+            if account_org_id and str(account_org_id) != str(self.org_id):
+                raise ValidationError(
+                    "Related account must belong to the same organization."
+                )
+        if self.status == "converted" and not self.email:
+            raise ValidationError({"email": _("Email is required to convert lead")})
+        super().save(*args, **kwargs)
 
     @property
     def days_since_last_contact(self) -> int:

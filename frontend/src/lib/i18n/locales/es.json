@@ -320,6 +320,7 @@
     "priority_high": "Alta",
     "priority_medium": "Media",
     "priority_low": "Baja",
-    "fallback_lead_title": "Prospecto"
+    "fallback_lead_title": "Prospecto",
+    "related_account": "Empresa relacionada"
   }
 }

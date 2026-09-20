@@ -24,6 +24,24 @@ class LeadSerializer(serializers.ModelSerializer):
     teams = TeamsSerializer(read_only=True, many=True)
     lead_comments = LeadCommentSerializer(read_only=True, many=True)
     source_app = serializers.SerializerMethodField()
+    account = serializers.SerializerMethodField()
+
+    def get_account(self, obj):
+        if obj.account_id:
+            try:
+                from accounts.models import Account
+
+                acc = Account.objects.filter(
+                    org=obj.org, id=obj.account_id, is_active=True
+                ).first()
+                if acc:
+                    return {
+                        "id": str(acc.id),
+                        "name": acc.name,
+                    }
+            except Exception:
+                pass
+        return None
 
     def get_source_app(self, obj):
         try:
@@ -94,6 +112,8 @@ class LeadSerializer(serializers.ModelSerializer):
             "custom_fields",
             # External integration source (e.g. bopclients)
             "source_app",
+            # Related Account
+            "account",
         )
         # is_sample is server-set only (see leads/models.py). Read-only here
         # even though this serializer is a read/list path today (writes go
