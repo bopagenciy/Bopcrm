@@ -52,10 +52,10 @@
   const liveMinutes = (e) =>
     e.is_running ? e.live_duration_minutes + sinceLoad : e.duration_minutes;
 
-  const WEEKDAY = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const WEEKDAY = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const todayISO = new Date().toISOString().slice(0, 10);
+  import { t as i18n } from '$lib/i18n';
 
-  /** Jump `deltaDays` from the current week's Mon..Sun and reload. */
   function shiftWeek(/** @type {number} */ deltaDays) {
     const s = new SvelteDate(`${week.start}T00:00:00Z`);
     const e = new SvelteDate(`${week.end}T00:00:00Z`);
@@ -68,7 +68,6 @@
     goto(resolve(`/timesheet?${qs.toString()}`), { keepFocus: true, noScroll: true });
   }
 
-  /** Back to the current ISO week (no params → server default). */
   function thisWeek() {
     goto(resolve('/timesheet'), { keepFocus: true, noScroll: true });
   }
@@ -84,11 +83,6 @@
     )
   );
 
-  /**
-   * Billable value at the rate snapshotted on each entry, not at today's rate.
-   * hourly_rate is stored per entry precisely so a rate change next month does
-   * not silently rewrite what last month was worth.
-   */
   let billableValue = $derived(
     week.days.reduce(
       (a, d) =>
@@ -105,44 +99,42 @@
   );
 </script>
 
-<PageHeader title="Timesheet">
+<PageHeader title={$i18n('timesheet.title', {}, 'Registro de tiempo')}>
   {#snippet sub()}
     {shortDate(week.start)} - {shortDate(week.end)} · {week.profile.name}
   {/snippet}
   {#snippet actions()}
-    <button class="v2-btn" aria-label="Previous week" onclick={() => shiftWeek(-7)}>
+    <button class="v2-btn" aria-label="Semana anterior" onclick={() => shiftWeek(-7)}>
       <ChevronLeft />
     </button>
-    <button class="v2-btn" onclick={thisWeek}>This week</button>
-    <button class="v2-btn" aria-label="Next week" onclick={() => shiftWeek(7)}>
+    <button class="v2-btn" onclick={thisWeek}>Esta semana</button>
+    <button class="v2-btn" aria-label="Semana siguiente" onclick={() => shiftWeek(7)}>
       <ChevronRight />
     </button>
-    <!-- This page is one person's week. The report is every window and every
-         grouping of the same entries, and where the CSV comes from. -->
-    <a class="v2-btn" href={resolve('/timesheet/report')}>Report</a>
+    <a class="v2-btn" href={resolve('/timesheet/report')}>Reporte</a>
   {/snippet}
 </PageHeader>
 
 <div class="v2-pad" style="padding-top:16px;flex:none">
   <div class="v2-stats">
-    <StatCard label="Logged this week" value={hm(weekMinutes)} tone="ink" />
+    <StatCard label="Registrado esta semana" value={hm(weekMinutes)} tone="ink" />
     <StatCard
-      label="Billable"
+      label="Facturable"
       value={hm(billableMinutes)}
       tone="moss"
-      detail="{Math.round((billableMinutes / Math.max(1, weekMinutes)) * 100)}% of logged time"
+      detail="{Math.round((billableMinutes / Math.max(1, weekMinutes)) * 100)}% del tiempo registrado"
     />
     <StatCard
-      label="Billable value"
+      label="Valor facturable"
       value={money(billableValue, data.org.currency)}
       tone="slate"
-      detail="At the rate saved on each entry"
+      detail="A la tarifa guardada en cada entrada"
     />
     <StatCard
-      label="Not yet invoiced"
+      label="No facturado aún"
       value={count(unbilled)}
       tone={unbilled ? 'clay' : 'slate'}
-      detail={unbilled ? 'Billable entries with no invoice' : 'Everything billable is billed'}
+      detail={unbilled ? 'Entradas facturables sin factura' : 'Todo lo facturable está facturado'}
     />
   </div>
 </div>
@@ -150,11 +142,10 @@
 <div class="v2-scroll">
   <div class="v2-pad" style="padding-bottom:32px">
     {#if week.running_count}
-      <!-- The one thing on this page that changes while you look at it. -->
       <div class="v2-next" style="margin-bottom:16px">
         <div class="v2-next-body">
           <div class="v2-label" style="color:var(--v2-ember)">
-            {week.running_count === 1 ? 'Timer running' : `${week.running_count} timers running`}
+            {week.running_count === 1 ? 'Temporizador activo' : `${week.running_count} temporizadores activos`}
           </div>
           {#if form?.error}
             <!-- Stop can fail (ownership check, network). Silent failure here

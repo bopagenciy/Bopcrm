@@ -28,85 +28,72 @@
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import { count, relativeDays } from '$lib/v2/format.js';
   import { FileText, FileSpreadsheet, File, Users, Upload, Lock, Pencil } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
 
   let documents = $derived(data.results);
   let totals = $derived(data.totals);
-  // Uploading is open to any org member (the server checks only auth + org), so
-  // the Upload button shows for everyone. Editing/deleting are the narrow writes
-  //. Those are gated per row by `can_write` (creator or admin) below.
 
   const ICON = { pdf: FileText, sheet: FileSpreadsheet, text: FileText };
   const iconFor = (kind) => ICON[kind] ?? File;
 
-  /** kB and MB, never bytes. Nobody reads a file size in bytes. A missing file
-      has no size the server could read, so it shows an em dash, not "0 kB". */
   function fileSize(bytes) {
     if (bytes == null) return '—';
     if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
     return `${Math.round(bytes / 1000)} kB`;
   }
 
-  /**
-   * Who can open a document, in the same terms the server uses: the creator,
-   * anyone in `shared_to`, anyone in a team it is shared with, plus admins.
-   *
-   * Names rather than a count while there are few enough to read; "Marcus
-   * and Ken" is checkable at a glance and "2 people" is not. Teams are named
-   * separately below because "the Support team" is the thing that was chosen,
-   * and flattening it to three names loses the reason.
-   */
   function reachLabel(d) {
     const names = d.shared_to.map((p) => p.name.split(' ')[0]);
-    if (!names.length) return d.teams.length ? '' : 'Nobody yet';
-    if (names.length <= 2) return names.join(' and ');
-    return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+    if (!names.length) return d.teams.length ? '' : 'Nadie aún';
+    if (names.length <= 2) return names.join(' y ');
+    return `${names.slice(0, 2).join(', ')} y ${names.length - 2} más`;
   }
 </script>
 
-<PageHeader title="Documents">
+<PageHeader title={$i18n('documents.title', {}, 'Documentos')}>
   {#snippet sub()}
-    <span class="v2-num">{count(totals.active)}</span> active ·
-    <span class="v2-num">{count(totals.inactive)}</span> archived
+    <span class="v2-num">{count(totals.active)}</span> activos ·
+    <span class="v2-num">{count(totals.inactive)}</span> archivados
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/documents/new')}><Upload />Upload</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/documents/new')}><Upload />{$i18n('common.upload', {}, 'Cargar')}</a>
   {/snippet}
 </PageHeader>
 
 {#if page.url.search}
   <p class="v2-sub" style="font-size:11.5px;margin:8px 0 0">
-    These numbers describe the filtered list.
+    Estos números describen la lista filtrada.
   </p>
 {/if}
 
 <div class="v2-pad" style="padding-top:14px;flex:none">
   <div class="v2-stats">
     <StatCard
-      label="Given to nobody"
+      label="Sin compartir"
       value={count(totals.unshared)}
       tone={totals.unshared ? 'clay' : 'slate'}
-      detail="Only the uploader and admins"
+      detail="Solo el creador y administradores"
     />
-    <StatCard label="Active" value={count(totals.active)} tone="ink" />
-    <StatCard label="Archived" value={count(totals.inactive)} tone="slate" />
+    <StatCard label="Activos" value={count(totals.active)} tone="ink" />
+    <StatCard label="Archivados" value={count(totals.inactive)} tone="slate" />
     <StatCard label="Total" value={count(totals.count)} tone="slate" />
   </div>
 </div>
 
-<FilterBar page="documents" url={page.url} meta="Newest first" />
+<FilterBar page="documents" url={page.url} meta="Más recientes primero" />
 
 <div class="v2-scroll">
   {#if documents.length === 0}
     <EmptyState
-      title="No documents yet"
-      body="Contracts, runbooks, price sheets. The things you send people often enough to stop hunting for. Share each one with the people or the team who need it; an unshared upload is visible only to you and to admins."
+      title="Aún no hay documentos"
+      body="Contratos, hojas de precios, manuales. Comparte cada documento con las personas o equipos que los necesiten."
     >
       {#snippet icon()}<FileText size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/documents/new')}>Upload a document</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/documents/new')}>Cargar un documento</a>
       {/snippet}
     </EmptyState>
   {:else}
@@ -114,11 +101,11 @@
       <table class="v2-table">
         <thead>
           <tr>
-            <th>Document</th>
-            <th>Who can open it</th>
-            <th>Uploaded by</th>
-            <th class="v2-r">Size</th>
-            <th class="v2-r">Added</th>
+            <th>Documento</th>
+            <th>Quién puede abrirlo</th>
+            <th>Cargado por</th>
+            <th class="v2-r">Tamaño</th>
+            <th class="v2-r">Añadido</th>
             <th></th>
           </tr>
         </thead>

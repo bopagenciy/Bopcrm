@@ -25,6 +25,7 @@
   import { SOLUTION_STATUS_LABEL, SOLUTION_STATUS_TONE } from '$lib/v2/enums.js';
   import { enhance } from '$app/forms';
   import { BookOpen, Eye, EyeOff, Plus } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
@@ -33,18 +34,18 @@
   let totals = $derived(data.totals);
 </script>
 
-<PageHeader title="Knowledge base">
+<PageHeader title={$i18n('solutions.title', {}, 'Base de conocimiento')}>
   {#snippet sub()}
     <!-- "Live to customers" rather than "published": the flag's own name says
          nothing about who ends up reading it, and this count is the one number
          on the page with a consequence outside the org. Stays grammatical at
          every count. -->
     <span class="v2-num">{count(totals.count)}</span>
-    {totals.count === 1 ? 'article' : 'articles'} ·
-    <span class="v2-num">{count(totals.published)}</span> live to customers
+    {totals.count === 1 ? 'artículo' : 'artículos'} ·
+    <span class="v2-num">{count(totals.published)}</span> visibles para clientes
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/solutions/new')}><Plus />New article</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/solutions/new')}><Plus />{$i18n('solutions.new_article', {}, 'Nuevo artículo')}</a>
   {/snippet}
 </PageHeader>
 
@@ -55,23 +56,23 @@
      four reading zero. True whether or not a filter is applied, so it always
      renders. -->
 <p class="v2-sub" style="font-size:11.5px;margin:8px 0 0">
-  These numbers cover every article, not just the ones shown.
+  Estos números cubren todos los artículos, no solo los mostrados.
 </p>
 
 <div class="v2-pad" style="padding-top:14px;flex:none">
   <div class="v2-stats">
     <StatCard
-      label="Approved, not published"
+      label="Aprobados, no publicados"
       value={count(totals.approved_unpublished)}
       tone={totals.approved_unpublished ? 'clay' : 'slate'}
       detail={totals.approved_unpublished
         ? data.canRelease
-          ? 'Ready to go live'
-          : 'Waiting on an admin'
-        : 'Nothing waiting'}
+          ? 'Listos para publicar'
+          : 'Esperando administrador'
+        : 'Sin pendientes'}
     />
-    <StatCard label="Published" value={count(totals.published)} tone="moss" />
-    <StatCard label="Draft" value={count(totals.draft)} tone="slate" />
+    <StatCard label="Publicados" value={count(totals.published)} tone="moss" />
+    <StatCard label="Borrador" value={count(totals.draft)} tone="slate" />
     <StatCard label="Total" value={count(totals.count)} tone="ink" />
   </div>
 </div>
@@ -80,7 +81,7 @@
   page="solutions"
   url={page.url}
   tags={data.tags}
-  meta="Published means customers can read it. Approving it is a separate step"
+  meta="Publicado significa que los clientes pueden leerlo"
 />
 
 {#if form?.error}
@@ -90,18 +91,18 @@
 <div class="v2-scroll">
   {#if articles.length === 0}
     <EmptyState
-      title={page.url.search ? 'No articles match that' : 'No articles yet'}
+      title={page.url.search ? 'Sin artículos que coincidan' : 'Aún no hay artículos'}
       body={page.url.search
-        ? 'Nothing in the knowledge base matches those filters. Clearing them shows everything.'
-        : 'Write the answer once, link it from the tickets that ask for it, and stop retyping it. The first one usually comes straight out of a ticket you just resolved.'}
+        ? 'Nada en la base de conocimiento coincide con esos filtros.'
+        : 'Escribe la respuesta una vez, vincúlala desde los tickets que la requieran y ahorra tiempo.'}
     >
       {#snippet icon()}<BookOpen size={21} />{/snippet}
       {#snippet actions()}
         {#if page.url.search}
-          <a class="v2-btn" href={resolve('/solutions')}>Clear filters</a>
+          <a class="v2-btn" href={resolve('/solutions')}>{$i18n('common.clear_filters', {}, 'Limpiar filtros')}</a>
         {/if}
-        <a class="v2-btn v2-btn-primary" href={resolve('/solutions/new')}>New article</a>
-        <a class="v2-btn" href={resolve('/tickets')}>Go to tickets</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/solutions/new')}>{$i18n('solutions.new_article', {}, 'Nuevo artículo')}</a>
+        <a class="v2-btn" href={resolve('/tickets')}>Ir a tickets</a>
       {/snippet}
     </EmptyState>
   {:else}
@@ -109,12 +110,12 @@
       <table class="v2-table">
         <thead>
           <tr>
-            <th>Article</th>
-            <th>Status</th>
-            <th>Visibility</th>
-            <th class="v2-r">Tickets solved</th>
-            <th>Author</th>
-            <th class="v2-r">Edited</th>
+            <th>Artículo</th>
+            <th>Estado</th>
+            <th>Visibilidad</th>
+            <th class="v2-r">Tickets resueltos</th>
+            <th>Autor</th>
+            <th class="v2-r">Editado</th>
             <th style="width:110px"></th>
           </tr>
         </thead>

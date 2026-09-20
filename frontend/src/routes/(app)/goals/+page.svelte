@@ -29,27 +29,19 @@
     PERIOD_TYPE_LABEL
   } from '$lib/v2/enums.js';
   import { Plus, Target, Trophy, History } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
 
   let totals = $derived(data.totals);
 
-  /**
-   * The filter bar submits as a plain GET form, so the state lives in the URL:
-   * a filtered view is linkable, survives a reload, and re-runs the server load
-   * that applies it. The backend does the filtering (`period_type`, `search`,
-   * `current`, `active` on the list endpoint); nothing here narrows an array
-   * that was already fetched in full.
-   */
   let filters = $derived(data.filters ?? { period_type: '', q: '', window: '' });
   let filtered = $derived(Boolean(filters.period_type || filters.q || filters.window));
 
-  /** How many deal types this goal re-weighs, for the badge on its card. */
   const weightedTypes = (g) =>
     Object.entries(g.type_weights ?? {}).filter(([, w]) => Number(w) !== 1).length;
 
-  /** How far through the period we are, 0-100. */
   function elapsedPercent(g) {
     const start = new Date(g.period_start).getTime();
     const end = new Date(g.period_end).getTime();
@@ -59,14 +51,8 @@
 
   const isOver = (g) => (daysSince(g.period_end) ?? -1) > 0;
 
-  /**
-   * SalesGoal.status has no terminal "missed": once period_end passes,
-   * expected_pace is pinned at 100, so a goal that ended weeks short keeps
-   * reporting "behind" as though you could still do something about it. A
-   * finished period is reported as met or missed instead.
-   */
   const statusLabel = (g) =>
-    isOver(g) ? (g.progress_percent >= 100 ? 'Target met' : 'Missed') : GOAL_STATUS_LABEL[g.status];
+    isOver(g) ? (g.progress_percent >= 100 ? 'Meta alcanzada' : 'No alcanzada') : GOAL_STATUS_LABEL[g.status];
 
   const statusTone = (g) =>
     isOver(g) ? (g.progress_percent >= 100 ? 'moss' : 'slate') : GOAL_STATUS_TONE[g.status];
@@ -82,20 +68,19 @@
           : 'var(--v2-slate)';
   };
 
-  /** Revenue goals are money; deals and activities goals are plain counts. */
   const value = (g, n) => (g.goal_type === 'REVENUE' ? money(n, data.org.currency) : count(n));
 </script>
 
-<PageHeader title="Goals">
+<PageHeader title={$i18n('goals.title', {}, 'Objetivos')}>
   {#snippet sub()}
-    <span class="v2-num">{money(totals.achieved, data.org.currency)}</span> of
-    <span class="v2-num">{money(totals.target, data.org.currency)}</span> across
-    <span class="v2-num">{count(totals.active)}</span> active goals
+    <span class="v2-num">{money(totals.achieved, data.org.currency)}</span> de
+    <span class="v2-num">{money(totals.target, data.org.currency)}</span> en
+    <span class="v2-num">{count(totals.active)}</span> objetivos activos
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn" href={resolve('/goals/history')}><History />History</a>
+    <a class="v2-btn" href={resolve('/goals/history')}><History />Historial</a>
     {#if data.can_edit}
-      <a class="v2-btn v2-btn-primary" href={resolve('/goals/new')}><Plus />New goal</a>
+      <a class="v2-btn v2-btn-primary" href={resolve('/goals/new')}><Plus />{$i18n('goals.new_goal', {}, 'Nuevo objetivo')}</a>
     {/if}
   {/snippet}
 </PageHeader>
@@ -103,24 +88,24 @@
 <div class="v2-pad" style="padding-top:16px;flex:none">
   <div class="v2-stats">
     <StatCard
-      label="Committed"
+      label={$i18n('goals.committed', {}, 'COMPROMETIDO')}
       value={money(totals.target, data.org.currency)}
       tone="ink"
-      detail="Active goals only"
+      detail={$i18n('goals.active_goals_only', {}, 'Solo objetivos activos')}
     />
     <StatCard
-      label="Booked"
+      label={$i18n('goals.booked', {}, 'CERRADO GANADO')}
       value={money(totals.achieved, data.org.currency)}
       tone="moss"
-      detail="Closed-won in period"
+      detail={$i18n('goals.closed_won_in_period', {}, 'Cerrados ganados en el período')}
     />
     <StatCard
-      label="Behind pace"
+      label={$i18n('goals.behind_pace', {}, 'ATRASADOS')}
       value={count(totals.behind)}
       tone={totals.behind ? 'rust' : 'slate'}
-      detail={totals.behind ? 'Slower than the calendar' : 'Everyone is on pace'}
+      detail={totals.behind ? 'Más lento que el calendario' : $i18n('goals.everyone_on_pace', {}, 'Todos están al ritmo esperado')}
     />
-    <StatCard label="Active goals" value={count(totals.active)} tone="slate" />
+    <StatCard label={$i18n('goals.active_goals', {}, 'OBJETIVOS ACTIVOS')} value={count(totals.active)} tone="slate" />
   </div>
 
   <form class="filters" method="GET" data-sveltekit-keepfocus data-sveltekit-replacestate>
@@ -129,23 +114,23 @@
       type="search"
       name="q"
       value={filters.q}
-      placeholder="Search goals by name"
-      aria-label="Search goals by name"
+      placeholder={$i18n('goals.search_goals_placeholder', {}, 'Buscar objetivos por nombre')}
+      aria-label={$i18n('goals.search_goals_placeholder', {}, 'Buscar objetivos por nombre')}
     />
-    <select class="v2-input" name="period_type" aria-label="Filter by period">
-      <option value="">Any period</option>
+    <select class="v2-input" name="period_type" aria-label="Filtrar por período">
+      <option value="">{$i18n('goals.any_period', {}, 'Cualquier período')}</option>
       {#each Object.entries(PERIOD_TYPE_LABEL) as [key, label] (key)}
         <option value={key} selected={filters.period_type === key}>{label}</option>
       {/each}
     </select>
-    <select class="v2-input" name="window" aria-label="Filter by window">
-      <option value="">All goals</option>
-      <option value="current" selected={filters.window === 'current'}>Running today</option>
-      <option value="active" selected={filters.window === 'active'}>Not paused</option>
+    <select class="v2-input" name="window" aria-label="Filtrar por ventana">
+      <option value="">{$i18n('goals.all_goals', {}, 'Todos los objetivos')}</option>
+      <option value="current" selected={filters.window === 'current'}>Vigentes hoy</option>
+      <option value="active" selected={filters.window === 'active'}>No pausados</option>
     </select>
-    <button class="v2-btn" type="submit">Filter</button>
+    <button class="v2-btn" type="submit">{$i18n('common.filter', {}, 'Filtrar')}</button>
     {#if filtered}
-      <a class="v2-btn" href={resolve('/goals')}>Clear</a>
+      <a class="v2-btn" href={resolve('/goals')}>{$i18n('common.clear_all', {}, 'Limpiar')}</a>
     {/if}
   </form>
 </div>
@@ -162,25 +147,25 @@
            of one they already have. -->
       {#if filtered}
         <EmptyState
-          title="No goals match this filter"
-          body="Nothing here matches the search and period you picked. Clearing the filter shows everything you can see."
+          title="No hay objetivos que coincidan"
+          body="Nada coincide con la búsqueda y período seleccionados. Limpiar el filtro mostrará todo."
         >
           {#snippet icon()}<Target size={21} />{/snippet}
           {#snippet actions()}
-            <a class="v2-btn" href={resolve('/goals')}>Clear filter</a>
+            <a class="v2-btn" href={resolve('/goals')}>{$i18n('common.clear_filters', {}, 'Limpiar filtros')}</a>
           {/snippet}
         </EmptyState>
       {:else}
         <EmptyState
-          title={data.can_edit ? 'No goals set' : 'Nothing assigned to you'}
+          title={data.can_edit ? 'Aún no hay objetivos' : 'Nada asignado a ti'}
           body={data.can_edit
-            ? 'A goal is a target and a period. Once one exists, closed-won deals count towards it automatically. Nobody has to update a number.'
-            : 'Nothing is assigned to you or your teams. An administrator sets these, and closed-won deals count towards them automatically once one exists.'}
+            ? 'Un objetivo es una meta y un período. Cuando existe uno, los negocios cerrados ganados cuentan automáticamente.'
+            : 'No hay nada asignado a ti o a tus equipos. Un administrador configura los objetivos.'}
         >
           {#snippet icon()}<Target size={21} />{/snippet}
           {#snippet actions()}
             {#if data.can_edit}
-              <a class="v2-btn v2-btn-primary" href={resolve('/goals/new')}>New goal</a>
+              <a class="v2-btn v2-btn-primary" href={resolve('/goals/new')}>{$i18n('goals.new_goal', {}, 'Nuevo objetivo')}</a>
             {/if}
           {/snippet}
         </EmptyState>

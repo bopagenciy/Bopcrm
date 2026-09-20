@@ -73,27 +73,26 @@
     if (t.first_response_at) {
       const took =
         (new Date(t.first_response_at).getTime() - new Date(t.opened_at).getTime()) / 6e4;
-      return { state: 'met', label: `Met in ${fmtMins(took)}`, tone: 'moss' };
+      return { state: 'met', label: `Atendido en ${fmtMins(took)}`, tone: 'moss' };
     }
     if (!t.first_response_deadline) {
-      return { state: 'none', label: 'No target', tone: 'slate' };
+      return { state: 'none', label: 'Sin meta', tone: 'slate' };
     }
     const now = Date.now();
     const opened = new Date(t.opened_at).getTime();
     const due = new Date(t.first_response_deadline).getTime();
     if (now >= due) {
-      return { state: 'breached', label: `${fmtMins((now - due) / 6e4)} over`, tone: 'rust' };
+      return { state: 'breached', label: `${fmtMins((now - due) / 6e4)} de retraso`, tone: 'rust' };
     }
     const pct = Math.max(0, Math.min(100, Math.round(((now - opened) / (due - opened)) * 100)));
     return {
       state: 'running',
       pct,
-      label: `${fmtMins((due - now) / 6e4)} left`,
+      label: `faltan ${fmtMins((due - now) / 6e4)}`,
       tone: pct >= 75 ? 'rust' : pct >= 50 ? 'clay' : 'slate'
     };
   }
 
-  /** @param {number} m */
   function fmtMins(m) {
     const n = Math.max(0, Math.round(m));
     if (n < 60) return `${n}m`;
@@ -107,31 +106,26 @@
     clay: 'var(--v2-clay)',
     slate: 'var(--v2-slate)'
   };
+  import { t as i18n } from '$lib/i18n';
 </script>
 
-<PageHeader title="Tickets">
+<PageHeader title={$i18n('tickets.title', {}, 'Tickets')}>
   {#snippet sub()}
-    <span class="v2-num">{count(totals.open)}</span> open ·
-    <span class="v2-num" style="color:var(--v2-rust)">{totals.urgent}</span> urgent ·
-    <!-- Not "breaching today". A breach depends on the org's business calendar
-         and is a per-row calculation; nobody having replied yet is a fact the
-         queue can establish, and it is the one that decides what to open. -->
-    <span class="v2-num">{count(totals.awaiting_reply)}</span> with no reply yet
+    <span class="v2-num">{count(totals.open)}</span> abiertos ·
+    <span class="v2-num" style="color:var(--v2-rust)">{totals.urgent}</span> urgentes ·
+    <span class="v2-num">{count(totals.awaiting_reply)}</span> sin respuesta aún
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}><Plus />New ticket</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}><Plus />{$i18n('tickets.new_ticket', {}, 'Nuevo ticket')}</a>
   {/snippet}
 </PageHeader>
 
 {#if page.url.search}
   <p class="v2-sub" style="font-size:11.5px;margin:8px 0 0">
-    These numbers describe the filtered queue.
+    Estos números describen la cola filtrada.
   </p>
 {/if}
 
-<!-- Approvals and Analytics were buttons in this header that went nowhere.
-     They are sibling pages, so they belong in a tab strip that also tells you
-     which one you are on. -->
 <SectionTabs set="tickets" />
 
 {#if banner}
@@ -144,7 +138,6 @@
     tags={data.tags}
     onclear={() => selected.clear()}
     ondone={async () => {
-      // The form action returned; show its summary, refresh, clear selection.
       const r = page.form;
       if (r?.ok) banner = summaryText(r.kind, r.summary);
       selected.clear();
@@ -159,25 +152,24 @@
   people={data.people}
   tags={data.tags}
   meId={data.meId}
-  meta="First-reply targets come from each ticket's SLA hours"
+  meta="Metas de respuesta según SLA de cada ticket"
 />
 
 <div class="v2-scroll">
   {#if tickets.length === 0}
-    <!-- An empty queue is good news, so it does not read like a failure. -->
     <EmptyState
-      title={data.showAll ? 'No tickets here yet' : 'The queue is clear'}
+      title={data.showAll ? 'Aún no hay tickets aquí' : 'La cola está despejada'}
       body={data.showAll
-        ? 'Nothing has been raised in this workspace. Tickets arrive here from email, the portal, and anyone who replies to a closed one.'
-        : 'Nothing is waiting on your team right now. Closed and rejected tickets are still here. They are just not in the way.'}
+        ? 'No se ha creado ningún ticket en este espacio. Los tickets llegan por correo, el portal o cuando alguien responde a uno cerrado.'
+        : 'Nada pendiente para tu equipo en este momento.'}
     >
       {#snippet icon()}<LifeBuoy size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}>New ticket</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}>{$i18n('tickets.new_ticket', {}, 'Nuevo ticket')}</a>
         {#if !data.showAll}
-          <a class="v2-btn" href={resolve('/tickets?all=1')}>Show closed too</a>
+          <a class="v2-btn" href={resolve('/tickets?all=1')}>Mostrar cerrados también</a>
         {/if}
-        <a class="v2-btn" href={resolve('/solutions')}>Knowledge base</a>
+        <a class="v2-btn" href={resolve('/solutions')}>Base de conocimiento</a>
       {/snippet}
     </EmptyState>
   {:else}
@@ -188,19 +180,19 @@
             <th style="width:34px">
               <input
                 type="checkbox"
-                aria-label="Select all loaded"
+                aria-label="Seleccionar todos"
                 checked={tickets.length > 0 && selected.size === tickets.length}
                 onchange={toggleAll}
               />
             </th>
-            <th>Subject</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Type</th>
-            <th>Account</th>
-            <th>Assignee</th>
-            <th class="v2-r">Age</th>
-            <th style="width:130px">First reply</th>
+            <th>Asunto</th>
+            <th>Prioridad</th>
+            <th>Estado</th>
+            <th>Tipo</th>
+            <th>Empresa</th>
+            <th>Asignado</th>
+            <th class="v2-r">Antigüedad</th>
+            <th style="width:130px">Primera respuesta</th>
           </tr>
         </thead>
         <tbody>

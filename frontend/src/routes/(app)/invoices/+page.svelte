@@ -11,6 +11,7 @@
   import { INVOICE_STATUS_TONE, invoiceStatusLabel } from '$lib/v2/enums.js';
   import { enhance } from '$app/forms';
   import { Plus, Receipt } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
@@ -21,84 +22,67 @@
   /** Rows with a send in flight, so the button can show it is working. */
   let sending = $state(/** @type {Record<string, boolean>} */ ({}));
 
-  /**
-   * Days past due, or days remaining. A settled invoice has no age, once it
-   * is Paid or Cancelled the due date stops meaning anything, and showing
-   * "4d late" against a paid invoice is just wrong.
-   */
   const SETTLED = ['Paid', 'Cancelled'];
 
   function ageLabel(inv) {
     if (SETTLED.includes(inv.status)) return '—';
     if (!inv.due_date) return '—';
     const n = daysSince(inv.due_date);
-    if (n > 0) return `${n}d late`;
-    if (n === 0) return 'due today';
-    return `${Math.abs(n)}d left`;
+    if (n > 0) return `${n}d atraso`;
+    if (n === 0) return 'vence hoy';
+    return `faltan ${Math.abs(n)}d`;
   }
 
   const isLate = (inv) =>
     !SETTLED.includes(inv.status) && inv.due_date && daysSince(inv.due_date) > 0;
 </script>
 
-<PageHeader title="Invoices">
+<PageHeader title={$i18n('invoices.title', {}, 'Facturas')}>
   {#snippet sub()}
-    <!--
-      These aggregates come from the API over the whole result set. v1 summed
-      the loaded page, so a 50-row list showed pills adding up to 10.
-    -->
-    <span class="v2-num">{count(totals.count)}</span> invoices ·
-    <span class="v2-num">{money(totals.outstanding, data.org.currency)}</span> outstanding
+    <span class="v2-num">{count(totals.count)}</span> facturas ·
+    <span class="v2-num">{money(totals.outstanding, data.org.currency)}</span> pendientes de cobro
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/invoices/new')}><Plus />New invoice</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/invoices/new')}><Plus />{$i18n('invoices.new_invoice', {}, 'Nueva factura')}</a>
   {/snippet}
 </PageHeader>
 
-<!-- Estimates and Recurring were buttons in this header that went nowhere,
-     while /invoices/estimates existed in v1 and was reachable only from a
-     dropdown elsewhere. They are sibling pages; a tab strip says so. -->
 <SectionTabs set="invoices" />
 
 <div class="v2-pad" style="padding-top:16px;flex:none">
   <div class="v2-stats">
     <StatCard
-      label="Overdue"
+      label="Vencidas"
       value={money(totals.overdue, data.org.currency)}
       tone="rust"
-      detail="Chase these first"
+      detail="Cobrar primero estas"
     />
     <StatCard
-      label="Due this month"
+      label="Vencen este mes"
       value={money(totals.due_this_month, data.org.currency)}
       tone="clay"
     />
     <StatCard
-      label="Paid this quarter"
+      label="Pagadas este trimestre"
       value={money(totals.paid_this_quarter, data.org.currency)}
       tone="moss"
     />
     <StatCard
-      label="Draft"
+      label="Borrador"
       value={money(totals.draft, data.org.currency)}
       tone="slate"
-      detail="Not sent yet"
+      detail="Aún no enviadas"
     />
   </div>
 </div>
 
-<!-- No "filtered list" line here, unlike the other v2 list pages: the pills
-     above come from `totals`, which the API deliberately computes over the
-     whole role-scoped queryset regardless of the active filter (see the note
-     on `listInvoices` in `$lib/server/v2/invoices.js`). Saying "these numbers
-     describe the filtered list" would be false for this page. -->
 <FilterBar
   page="invoices"
   url={page.url}
   people={data.people}
   accounts={data.accounts}
   meId={data.meId}
-  meta="Oldest due first"
+  meta="Vencimiento más antiguo primero"
 />
 
 {#if form?.error}
@@ -110,13 +94,13 @@
 <div class="v2-scroll">
   {#if invoices.length === 0}
     <EmptyState
-      title="Nothing billed yet"
-      body="Invoices show up here once you raise one. A won deal is usually the place to start. The amount and the account are already there."
+      title={$i18n('invoices.no_invoices', {}, 'Aún no hay facturas')}
+      body="Las facturas aparecerán aquí una vez que crees una. Un negocio ganado suele ser el punto de partida."
     >
       {#snippet icon()}<Receipt size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/invoices/new')}>New invoice</a>
-        <a class="v2-btn" href={resolve('/pipeline')}>Go to pipeline</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/invoices/new')}>{$i18n('invoices.new_invoice', {}, 'Nueva factura')}</a>
+        <a class="v2-btn" href={resolve('/pipeline')}>Ir al pipeline</a>
       {/snippet}
     </EmptyState>
   {:else}
@@ -124,12 +108,12 @@
       <table class="v2-table">
         <thead>
           <tr>
-            <th>Invoice</th>
-            <th>Account</th>
-            <th>Status</th>
-            <th class="v2-r">Amount</th>
-            <th>Due</th>
-            <th class="v2-r">Age</th>
+            <th>Factura</th>
+            <th>Empresa</th>
+            <th>Estado</th>
+            <th class="v2-r">Monto</th>
+            <th>Vencimiento</th>
+            <th class="v2-r">Antigüedad</th>
             <th style="width:130px"></th>
           </tr>
         </thead>
@@ -174,8 +158,7 @@
                   >
                     <input type="hidden" name="id" value={inv.id} />
                     <button class="v2-btn v2-btn-sm" disabled={sending[inv.id]}>
-                      {#if sending[inv.id]}Sending…{:else if inv.status === 'Overdue'}Send a
-                        reminder{:else}Send{/if}
+                      {#if sending[inv.id]}Enviando…{:else if inv.status === 'Overdue'}Enviar recordatorio{:else}Enviar{/if}
                     </button>
                   </form>
                 {/if}

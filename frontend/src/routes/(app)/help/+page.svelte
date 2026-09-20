@@ -32,6 +32,7 @@
   import Pill from '$lib/v2/components/Pill.svelte';
   import { relativeTime } from '$lib/v2/format.js';
   import { BookOpen, LifeBuoy, Plus, Bug, Mail, ArrowUpRight, ClipboardList } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -44,77 +45,62 @@
     closed: 'slate'
   };
 
-  const SELF_SERVE = [
+  let SELF_SERVE = $derived([
     {
       href: '/solutions',
       icon: BookOpen,
-      title: 'Knowledge base',
-      body: 'The answers your team has already written down, including the ones customers can read.'
+      title: $i18n('nav.knowledge_base', {}, 'Base de conocimiento'),
+      body: 'Respuestas y artículos preparados para tu equipo y clientes.'
     },
     {
       href: '/tickets',
       icon: LifeBuoy,
-      title: 'Your tickets',
-      body: 'Everything open, and who it is waiting on. Most "no one replied" turns out to be a ticket assigned to nobody.'
+      title: 'Tus tickets',
+      body: 'Todo lo abierto y en espera. Revisa la asignación de tus casos.'
     },
     {
       href: '/settings',
       icon: ClipboardList,
-      title: 'Settings',
-      body: 'Routing, escalation, business hours and inbound email. Each page reports what its rules are actually doing, not just what they are set to.'
+      title: $i18n('nav.settings', {}, 'Configuración'),
+      body: 'Reglas de enrutamiento, escalamiento, horario laboral y correo entrante.'
     }
-  ];
+  ]);
 
-  /**
-   * These hrefs leave the app, so they are rendered as-is.
-   *
-   * Not through `resolve()`: it throws on anything that is not an internal
-   * pathname or route id, which is a 500 for the whole page. `asInternalPath`
-   * does not save you, it is a typecheck shim that returns its argument as
-   * `any`, so an external URL passed through it compiles clean and fails at
-   * render. Every other external link in this codebase is written straight
-   * onto the anchor for the same reason.
-   */
-  const CONTACT = [
+  let CONTACT = $derived([
     {
       href: 'https://github.com/django-crm/Django-CRM/issues',
       icon: Bug,
-      title: 'Report a bug',
-      body: 'Public issue tracker. Fastest route for anything reproducible.',
+      title: 'Reportar un error',
+      body: 'Seguimiento de problemas en GitHub. La vía más rápida para errores reproducibles.',
       newTab: true
     },
     {
       href: 'mailto:support@bottlecrm.io',
       icon: Mail,
-      title: 'Email support',
-      body: 'For anything involving your data, billing or an account you cannot get into.',
+      title: 'Soporte por correo',
+      body: 'Para temas de datos, facturación o problemas de acceso a la cuenta.',
       newTab: false
     }
-  ];
+  ]);
 
-  /**
-   * The four facts a first reply always asks for. Browser and window come from
-   * the client; the other two are things only the person writing can supply,
-   * and they are phrased as prompts rather than pre-filled.
-   */
   let browser = $state('—');
   let windowSize = $state('—');
   $effect(() => {
     if (data.available) return;
     const ua = navigator.userAgent;
     const m = ua.match(/(Firefox|Edg|Chrome|Safari)\/([\d.]+)/);
-    browser = m ? `${m[1] === 'Edg' ? 'Edge' : m[1]} ${m[2].split('.')[0]}` : 'Unknown browser';
+    browser = m ? `${m[1] === 'Edg' ? 'Edge' : m[1]} ${m[2].split('.')[0]}` : 'Navegador desconocido';
     windowSize = `${window.innerWidth}×${window.innerHeight}`;
   });
 </script>
 
-<PageHeader title="Help" center width="920px">
+<PageHeader title={$i18n('help.title', {}, 'Ayuda')} center width="920px">
   {#snippet sub()}
-    Fix it yourself, or reach someone who can
+    {$i18n('help.subtitle', {}, 'Soluciónalo por ti mismo o contacta a alguien que pueda ayudarte')}
   {/snippet}
   {#snippet actions()}
     {#if data.available}
-      <a class="v2-btn v2-btn-primary" href={resolve('/help/new')}><Plus />New ticket</a>
+      <a class="v2-btn v2-btn-primary" href={resolve('/help/new')}><Plus />Nuevo ticket</a>
     {/if}
   {/snippet}
 </PageHeader>
