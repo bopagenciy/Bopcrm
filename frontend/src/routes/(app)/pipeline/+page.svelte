@@ -17,6 +17,7 @@
   import { dndzone } from 'svelte-dnd-action';
   import { invalidateAll } from '$app/navigation';
   import { deserialize } from '$app/forms';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -100,46 +101,22 @@
       }
       moveError =
         (result.type === 'failure' && /** @type {any} */ (result.data)?.error) ||
-        'Could not move the deal; reverted.';
+        'No se pudo mover el negocio; revertido.';
     } catch {
-      moveError = 'Could not move the deal, reverted.';
+      moveError = 'No se pudo mover el negocio; revertido.';
     }
     await invalidateAll();
   }
 
-  /**
-   * Whether the current view is actually narrowed, as opposed to merely
-   * carrying a query string. `page.url.search` alone is the wrong test: on
-   * this page `?view=board` is a layout toggle, not a filter, so a bare
-   * "Board" click from the unfiltered list would otherwise claim these
-   * numbers are filtered when nothing was. `'all'` is pipeline's own
-   * empty-params preset (see `$lib/v2/filters.js`), its declared default, so
-   * being on any other preset counts as filtered even when that preset
-   * (`open`, `stalled`) sets no field a chip would represent.
-   */
   let isFiltered = $derived(
     activeChips('pipeline', page.url, { people: data.people, tags: data.tags }).length > 0 ||
       activePresetKey('pipeline', page.url, data.meId) !== 'all'
   );
 
-  /**
-   * The List<->Board toggle used to be two static hrefs, `/pipeline` and
-   * `/pipeline?view=board`, so switching layout silently dropped every active
-   * filter. Board to List keeps every param and drops only `view`: the list
-   * can run everything the board could and more. List to Board keeps
-   * `view=board` plus only the params the board can actually honour
-   * (`data.boardFields`, always returned by `load` regardless of the current
-   * view, see the note in `+page.server.js`); the rest are deliberately
-   * dropped, and it is visible rather than silent, since the chips for them
-   * disappear along with the params.
-   */
   let listHref = $derived(withoutParam(page.url, 'view'));
   let boardHref = $derived.by(() => {
     const next = new SvelteURLSearchParams();
     next.set('view', 'board');
-    // `search` mirrors what `+page.server.js` forwards to the board itself
-    // (`kanban_views.py:123` reads it); it is not one of `boardFields`
-    // because it is not a descriptor field, just like on the list view.
     for (const key of [...(data.boardFields ?? []), 'search']) {
       const value = page.url.searchParams.get(key);
       if (value) next.set(key, value);
@@ -150,31 +127,26 @@
 
 <PageHeader title="Pipeline">
   {#snippet sub()}
-    <!-- Totals come from the API aggregate, never from the rows on screen.
-         Not "open deals": the default view is now the pipeline's own "All
-         deals" preset (empty params), which includes closed stages, so a word
-         that was only ever true under the old hardcoded ?open=true would lie
-         here as soon as somebody switched presets. -->
-    <span class="v2-num">{count(totals.count)}</span> deals ·
+    <span class="v2-num">{count(totals.count)}</span> {$i18n('pipeline.deals_count', { count: '' }, 'negocios').trim()} ·
     <span class="v2-num">{money(totals.amount_sum, data.org.currency)}</span> ·
-    <span class="v2-num">{money(totals.weighted_sum, data.org.currency)}</span> weighted ·
-    <span class="v2-num" style="color:var(--v2-rust)">{totals.stalled_count}</span> stalled
+    <span class="v2-num">{money(totals.weighted_sum, data.org.currency)}</span> {$i18n('pipeline.weighted', {}, 'ponderado')} ·
+    <span class="v2-num" style="color:var(--v2-rust)">{totals.stalled_count}</span> {$i18n('pipeline.stalled', {}, 'estancados')}
   {/snippet}
   {#snippet actions()}
     {#if view === 'board'}
-      <a class="v2-btn v2-btn-quiet" href={resolve(asInternalPath(listHref))}><List />List</a>
-      <span class="v2-btn" aria-current="true"><Columns3 />Board</span>
+      <a class="v2-btn v2-btn-quiet" href={resolve(asInternalPath(listHref))}><List />{$i18n('common.list', {}, 'Lista')}</a>
+      <span class="v2-btn" aria-current="true"><Columns3 />{$i18n('common.board', {}, 'Tablero')}</span>
     {:else}
-      <span class="v2-btn" aria-current="true"><List />List</span>
-      <a class="v2-btn v2-btn-quiet" href={resolve(asInternalPath(boardHref))}><Columns3 />Board</a>
+      <span class="v2-btn" aria-current="true"><List />{$i18n('common.list', {}, 'Lista')}</span>
+      <a class="v2-btn v2-btn-quiet" href={resolve(asInternalPath(boardHref))}><Columns3 />{$i18n('common.board', {}, 'Tablero')}</a>
     {/if}
-    <a class="v2-btn v2-btn-primary" href={resolve('/pipeline/new')}><Plus />New deal</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/pipeline/new')}><Plus />{$i18n('pipeline.new_deal', {}, 'Nuevo negocio')}</a>
   {/snippet}
 </PageHeader>
 
 {#if isFiltered}
   <p class="v2-sub" style="font-size:11.5px;margin:8px 0 0">
-    These numbers describe the filtered pipeline.
+    Estos números describen el pipeline filtrado.
   </p>
 {/if}
 
@@ -186,13 +158,10 @@
   meId={data.meId}
   onlyFields={data.onlyFields}
   onlyPresets={data.onlyPresets}
-  meta={view === 'board' ? 'Open stages only. Drag a card to change its stage' : 'Sorted by value'}
+  meta={view === 'board' ? 'Solo etapas abiertas. Arrastra una tarjeta para cambiar su etapa' : $i18n('pipeline.sorted_by_value', {}, 'Ordenado por valor')}
 />
 
 {#if moveError}
-  <!-- The card has already snapped back by the time this renders, so the
-       message explains a reversal the user has just watched rather than
-       warning about one to come. Same banner as the tasks board. -->
   <div class="v2-pad" style="padding-top:12px;flex:none">
     <div class="v2-move-error" role="status">
       <TriangleAlert size={13} style="flex:none" />
@@ -212,12 +181,8 @@
           >
         </div>
         {#if lane.truncated}
-          <!-- The API caps a column at 100 cards. Saying so beats a lane that
-               silently stops. Outside the dndzone below, so it never becomes a
-               drop target of its own. -->
           <p class="v2-sub" style="padding:0 2px 6px;font-size:11.5px">
-            Showing the first <span class="v2-num">{lane.rows.length}</span>. Filter to see the
-            rest.
+            Mostrando los primeros <span class="v2-num">{lane.rows.length}</span>. Filtra para ver más.
           </p>
         {/if}
         <div
@@ -227,9 +192,6 @@
           onfinalize={(e) => onFinalize(lane, e)}
         >
           {#each lane.rows as d (d.id)}
-            <!-- A div, not an anchor: dragging a link fights the browser's own
-                 link-drag, so the card is the drag handle and the name inside
-                 it is the way in. Matches the tasks board. -->
             <div class="v2-deal-card v2-card-drag" animate:flip={{ duration: FLIP_MS }}>
               <a
                 href={resolve(`/pipeline/${d.id}`)}
@@ -252,7 +214,7 @@
               </div>
             </div>
           {:else}
-            <p class="v2-sub" style="padding:10px 2px;font-size:12px">Nothing in this stage.</p>
+            <p class="v2-sub" style="padding:10px 2px;font-size:12px">Sin negocios en esta etapa.</p>
           {/each}
         </div>
       </section>
@@ -261,13 +223,13 @@
 {:else if deals.length === 0}
   <div class="v2-scroll">
     <EmptyState
-      title="No deals here"
-      body="Nothing matches this view. Start a deal from an account you are already talking to, convert a lead that is ready, or clear a filter to see more."
+      title={$i18n('pipeline.no_deals', {}, 'No hay negocios aquí')}
+      body={$i18n('pipeline.no_deals_sub', {}, 'No hay resultados para esta vista...')}
     >
       {#snippet icon()}<Columns3 size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/pipeline/new')}>New deal</a>
-        <a class="v2-btn" href={resolve('/leads')}>Go to leads</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/pipeline/new')}>{$i18n('pipeline.new_deal', {}, 'Nuevo negocio')}</a>
+        <a class="v2-btn" href={resolve('/leads')}>{$i18n('pipeline.go_to_leads', {}, 'Ir a prospectos')}</a>
       {/snippet}
     </EmptyState>
   </div>
@@ -277,13 +239,13 @@
       <table class="v2-table">
         <thead>
           <tr>
-            <th>Deal</th>
-            <th>Stage</th>
-            <th>Health</th>
-            <th class="v2-r">Value</th>
-            <th>Closing</th>
-            <th class="v2-r">In stage</th>
-            <th>Owner</th>
+            <th>Negocio</th>
+            <th>Etapa</th>
+            <th>Salud</th>
+            <th class="v2-r">Valor</th>
+            <th>Cierre</th>
+            <th class="v2-r">En etapa</th>
+            <th>Propietario</th>
           </tr>
         </thead>
         <tbody>

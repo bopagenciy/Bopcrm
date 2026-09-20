@@ -22,6 +22,7 @@
   import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
   import { enhance } from '$app/forms';
   import { CircleCheck, Circle, Plus } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
@@ -40,19 +41,19 @@
   };
 </script>
 
-<PageHeader title="Tasks">
+<PageHeader title={$i18n('tasks.title', {}, 'Tareas')}>
   {#snippet sub()}
-    <span class="v2-num">{count(totals.open)}</span> open ·
-    <span class="v2-num" style="color:var(--v2-rust)">{count(totals.overdue)}</span> overdue
+    <span class="v2-num">{count(totals.open)}</span> abiertas ·
+    <span class="v2-num" style="color:var(--v2-rust)">{count(totals.overdue)}</span> vencidas
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}><Plus />New task</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}><Plus />{$i18n('tasks.new_task', {}, 'Nueva tarea')}</a>
   {/snippet}
 </PageHeader>
 
 {#if page.url.search}
   <p class="v2-sub" style="font-size:11.5px;margin:8px 0 0">
-    These numbers describe the filtered list.
+    Estos números describen la lista filtrada.
   </p>
 {/if}
 
@@ -61,29 +62,23 @@
 <div class="v2-pad" style="padding-top:14px;flex:none">
   <div class="v2-stats">
     <StatCard
-      label="Overdue"
+      label="Vencidas"
       value={count(totals.overdue)}
       tone={totals.overdue ? 'rust' : 'slate'}
-      detail={totals.overdue ? 'Do these before anything else' : 'Nothing late'}
+      detail={totals.overdue ? 'Haz estas antes que cualquier otra' : 'Sin atrasos'}
     />
-    <StatCard label="Due this week" value={count(totals.due_this_week)} tone="clay" />
-    <StatCard label="Open" value={count(totals.open)} tone="ink" />
-    <!-- The mock's fourth card was "Done this week". `Task` has no
-         `completed_at`, so nothing records when a task was finished and that
-         number could only have been invented. This one is real, and it is the
-         more useful of the two: a task with no due date never becomes overdue
-         and never appears in "due this week", so nothing ever puts it in front
-         of anyone. -->
+    <StatCard label="Vencen esta semana" value={count(totals.due_this_week)} tone="clay" />
+    <StatCard label="Abiertas" value={count(totals.open)} tone="ink" />
     <StatCard
-      label="No due date"
+      label="Sin fecha"
       value={count(totals.no_due_date)}
       tone={totals.no_due_date ? 'clay' : 'slate'}
-      detail={totals.no_due_date ? 'These never come up on their own' : 'Everything is dated'}
+      detail={totals.no_due_date ? 'No tienen vencimiento programado' : 'Todas tienen fecha'}
     />
   </div>
 </div>
 
-<FilterBar page="tasks" url={page.url} people={data.people} meId={data.meId} meta="Newest first" />
+<FilterBar page="tasks" url={page.url} people={data.people} meId={data.meId} meta="Más recientes primero" />
 
 {#if form?.error}
   <p class="v2-pad v2-form-error" role="alert">{form.error}</p>
@@ -92,16 +87,16 @@
 <div class="v2-scroll">
   {#if tasks.length === 0}
     <EmptyState
-      title={data.showAll ? 'No tasks yet' : 'Nothing on your list'}
+      title={data.showAll ? 'Aún no hay tareas' : 'Nada en tu lista'}
       body={data.showAll
-        ? 'Tasks show up here when you add one, or when a deal, ticket or lead needs a follow-up scheduled.'
-        : 'Everything on your list is done. Show completed to see what you finished.'}
+        ? 'Las tareas aparecerán aquí cuando agregues una o cuando un negocio, ticket o prospecto requiera un seguimiento.'
+        : 'Todo lo de tu lista está al día. Muestra completadas para ver lo que has terminado.'}
     >
       {#snippet icon()}<CircleCheck size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}>New task</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}>{$i18n('tasks.new_task', {}, 'Nueva tarea')}</a>
         {#if !data.showAll}
-          <a class="v2-btn" href={resolve('/tasks?all=1')}>Show completed</a>
+          <a class="v2-btn" href={resolve('/tasks?all=1')}>Mostrar completadas</a>
         {/if}
       {/snippet}
     </EmptyState>
@@ -110,13 +105,13 @@
       <table class="v2-table">
         <thead>
           <tr>
-            <th style="width:38px"><span class="v2-sr-only">Done</span></th>
-            <th>Task</th>
-            <th>Attached to</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Owner</th>
-            <th class="v2-r">Due</th>
+            <th style="width:38px"><span class="v2-sr-only">Completado</span></th>
+            <th>Tarea</th>
+            <th>Asociado a</th>
+            <th>Prioridad</th>
+            <th>Estado</th>
+            <th>Propietario</th>
+            <th class="v2-r">Vencimiento</th>
           </tr>
         </thead>
         <tbody>

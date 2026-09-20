@@ -8,6 +8,7 @@
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import { count, relativeDays } from '$lib/v2/format.js';
   import { Users, PhoneOff, Plus } from '@lucide/svelte';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -16,23 +17,23 @@
   let totals = $derived(data.totals);
 </script>
 
-<PageHeader title="Contacts">
+<PageHeader title={$i18n('contacts.title', {}, 'Contactos')}>
   {#snippet sub()}
-    <span class="v2-num">{count(totals.count)}</span> people
+    <span class="v2-num">{count(totals.count)}</span> personas
     {#if !data.includeInactive && totals.inactive}
-      · <span class="v2-num">{count(totals.inactive)}</span> inactive hidden
+      · <span class="v2-num">{count(totals.inactive)}</span> inactivos ocultos
     {/if}
     {#if totals.do_not_call}
-      · <span class="v2-num">{count(totals.do_not_call)}</span> do not call
+      · <span class="v2-num">{count(totals.do_not_call)}</span> no llamar
     {/if}
   {/snippet}
   {#snippet actions()}
     {#if data.includeInactive}
-      <a class="v2-btn" href={resolve('/contacts')}>Hide inactive</a>
+      <a class="v2-btn" href={resolve('/contacts')}>Ocultar inactivos</a>
     {:else}
-      <a class="v2-btn" href={resolve('/contacts?inactive=1')}>Show inactive</a>
+      <a class="v2-btn" href={resolve('/contacts?inactive=1')}>Mostrar inactivos</a>
     {/if}
-    <a class="v2-btn v2-btn-primary" href={resolve('/contacts/new')}><Plus />New contact</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/contacts/new')}><Plus />{$i18n('contacts.new_contact', {}, 'Nuevo contacto')}</a>
   {/snippet}
 </PageHeader>
 
@@ -42,19 +43,19 @@
   people={data.people}
   tags={data.tags}
   meId={data.meId}
-  meta="Most recently added first"
+  meta="Añadidos más recientemente primero"
 />
 
 <div class="v2-scroll">
   {#if contacts.length === 0}
     <EmptyState
-      title="No contacts yet"
-      body="A contact is a person at an account. Convert a lead, or add one directly and attach them to the account they work for."
+      title={$i18n('contacts.no_contacts', {}, 'Aún no hay contactos')}
+      body="Un contacto es una persona en una empresa. Convierte un prospecto o agrega uno directamente."
     >
       {#snippet icon()}<Users size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/contacts/new')}>New contact</a>
-        <a class="v2-btn" href={resolve('/leads')}>Go to leads</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/contacts/new')}>{$i18n('contacts.new_contact', {}, 'Nuevo contacto')}</a>
+        <a class="v2-btn" href={resolve('/leads')}>{$i18n('pipeline.go_to_leads', {}, 'Ir a prospectos')}</a>
       {/snippet}
     </EmptyState>
   {:else}
@@ -62,12 +63,12 @@
       <table class="v2-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Account</th>
-            <th>Reachable on</th>
-            <th>Email</th>
-            <th data-m="hide">Owner</th>
-            <th class="v2-r">Updated</th>
+            <th>Nombre</th>
+            <th>Empresa</th>
+            <th>Teléfono</th>
+            <th>Correo</th>
+            <th data-m="hide">Propietario</th>
+            <th class="v2-r">Actualizado</th>
           </tr>
         </thead>
         <tbody>

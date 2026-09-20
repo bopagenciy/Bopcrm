@@ -7,9 +7,10 @@
   import Avatar from '$lib/v2/components/Avatar.svelte';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import { money, count, relativeDays, daysSince } from '$lib/v2/format.js';
-  import { LEAD_STATUS_TONE } from '$lib/v2/enums.js';
+  import { LEAD_STATUS_TONE, LEAD_STATUS_LABEL } from '$lib/v2/enums.js';
   import { Plus, Upload, Target } from '@lucide/svelte';
   import { t } from '$lib/terminology.js';
+  import { t as i18n } from '$lib/i18n';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -17,36 +18,21 @@
   let leads = $derived(data.leads);
   let totals = $derived(data.totals);
 
-  /* A vertical pack renames this module in the sidebar. Reading the same map
-     here keeps the two agreeing, a nav item saying "Enquiries" that opens a
-     page headed "Leads" reads as a bug, not as configuration. `t()` falls back
-     to the literal, so an org with no terminology sees exactly what it saw
-     before. The values are tenant text and render as plain text. */
   let terms = $derived(data.org?.terminology);
-  let plural = $derived(t(terms, 'lead.plural', 'Leads'));
-  let singular = $derived(t(terms, 'lead.singular', 'lead'));
+  let plural = $derived(t(terms, 'lead.plural', 'Prospectos'));
+  let singular = $derived(t(terms, 'lead.singular', 'prospecto'));
 
-  /**
-   * The same rule the API counts with, so the highlighted rows and the
-   * "unworked for more than a week" figure in the header agree. If one moves,
-   * move the other, `LeadListView.UNWORKED_AFTER_DAYS`.
-   *
-   * @param {{ last_contacted: string | null, created_at: string }} lead
-   */
   const stale = (lead) => (daysSince(lead.last_contacted ?? lead.created_at) ?? 0) > 7;
 </script>
 
 <PageHeader title={plural}>
   {#snippet sub()}
-    <span class="v2-num">{count(totals.count)}</span> open ·
-    <span class="v2-num">{totals.unworked_over_a_week}</span> unworked for more than a week
+    <span class="v2-num">{count(totals.count)}</span> abiertos ·
+    <span class="v2-num">{totals.unworked_over_a_week}</span> sin gestión por más de una semana
   {/snippet}
   {#snippet actions()}
-    <!-- Import stays unwired: /api/leads/import/ does not exist yet. Contacts
-         and cases both have import/preview/ and import/commit/; leads does not.
-         Tracked in the phase 2 plan. -->
-    <button class="v2-btn"><Upload />Import</button>
-    <a class="v2-btn v2-btn-primary" href={resolve('/leads/new')}><Plus />New {singular}</a>
+    <button class="v2-btn"><Upload />{$i18n('common.import', {}, 'Importar')}</button>
+    <a class="v2-btn v2-btn-primary" href={resolve('/leads/new')}><Plus />Nuevo {singular}</a>
   {/snippet}
 </PageHeader>
 
@@ -56,19 +42,19 @@
   people={data.people}
   tags={data.tags}
   meId={data.meId}
-  meta="Least recently touched first"
+  meta="Contactados menos recientemente primero"
 />
 
 <div class="v2-scroll">
   {#if leads.length === 0}
     <EmptyState
-      title="No {plural.toLowerCase()} yet"
-      body="A lead is somebody who might buy, before you know enough to call it a deal. Import a list, or add the last person who emailed you."
+      title="Aún no hay prospectos"
+      body="Un prospecto es alguien que podría comprar, antes de saber lo suficiente para convertirlo en negocio. Importa una lista o agrega la última persona que te escribió."
     >
       {#snippet icon()}<Target size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/leads/new')}>New {singular}</a>
-        <button class="v2-btn">Import</button>
+        <a class="v2-btn v2-btn-primary" href={resolve('/leads/new')}>Nuevo {singular}</a>
+        <button class="v2-btn">{$i18n('common.import', {}, 'Importar')}</button>
       {/snippet}
     </EmptyState>
   {:else}
@@ -76,13 +62,13 @@
       <table class="v2-table">
         <thead>
           <tr>
-            <th>Lead</th>
-            <th>Company</th>
-            <th>Status</th>
-            <th>Source</th>
-            <th class="v2-r">Est. value</th>
-            <th>Last touch</th>
-            <th>Owner</th>
+            <th>Prospecto</th>
+            <th>Compañía</th>
+            <th>Estado</th>
+            <th>Fuente</th>
+            <th class="v2-r">Valor est.</th>
+            <th>Último contacto</th>
+            <th>Propietario</th>
           </tr>
         </thead>
         <tbody>
@@ -98,24 +84,16 @@
                 <div>{l.company_name}</div>
                 <div class="v2-table-secondary" data-m="hide">{l.industry}</div>
               </td>
-              <td data-m="tag"><Pill tone={LEAD_STATUS_TONE[l.status]}>{l.status}</Pill></td>
+              <td data-m="tag"><Pill tone={LEAD_STATUS_TONE[l.status]}>{LEAD_STATUS_LABEL[l.status] ?? l.status}</Pill></td>
               <td class="v2-muted" data-m="hide" style="font-size:12.5px">{l.source}</td>
               <td class="v2-r v2-num"
                 >{l.opportunity_amount ? money(l.opportunity_amount, l.currency) : '—'}</td
               >
-              <!--
-              `last_contacted` is the only touch the model records. Lead has
-              no aging chain, StageAgingConfig and get_aging_status() being
-              Opportunity-only. Where it is null the cell says so and falls
-              back to how long the lead has been sitting, rather than
-              substituting `updated_at`: an edit is not a conversation, and a
-              column that quietly counts them stops being worth reading.
-            -->
               <td class:v2-muted={!stale(l)} class:overdue={stale(l)}>
                 {#if l.last_contacted}
                   {relativeDays(l.last_contacted)}
                 {:else}
-                  <div>Not contacted</div>
+                  <div>Sin contactar</div>
                   <!-- Stacked, matching the Company cell. Inline, these two ran
                        together into "Not contactedadded 64 days ago". -->
                   <div class="v2-table-secondary" data-m="hide">
